@@ -32,6 +32,11 @@ static enum in_report sent_report_type = IN_REPORT_COUNT;
 
 static struct config_channel_state cfg_chan;
 
+static struct k_queue myqueue;
+
+static K_THREAD_STACK_DEFINE(stack, 2048);
+static struct k_thread thread;
+
 static int get_report(struct usb_setup_packet *setup, s32_t *len, u8_t **data)
 {
 	if (IS_ENABLED(CONFIG_DESKTOP_CONFIG_CHANNEL_ENABLE)) {
@@ -113,9 +118,14 @@ static void send_mouse_report(const struct hid_mouse_event *event)
 		return;
 	}
 
+	u8_t *buffer_raw = k_malloc(4 + 1 + (hid_protocol) ? (REPORT_SIZE_MOUSE + sizeof(u8_t)) : (REPORT_SIZE_MOUSE_BOOT));
+	buffer_raw[4] = hid_protocol;
+	u8_t *buffer = &buffer_raw[5];
+#if 0
 	u8_t buffer[(hid_protocol) ?
 		    REPORT_SIZE_MOUSE + sizeof(u8_t) :
 		    REPORT_SIZE_MOUSE_BOOT];
+#endif
 
 	if (hid_protocol == HID_PROTOCOL_REPORT) {
 		s16_t wheel = MAX(MIN(event->wheel, MOUSE_REPORT_WHEEL_MAX),
@@ -131,7 +141,7 @@ static void send_mouse_report(const struct hid_mouse_event *event)
 		sys_put_le16(x, x_buff);
 		sys_put_le16(y, y_buff);
 
-		__ASSERT(sizeof(buffer) == 6, "Invalid report size");
+		//__ASSERT(sizeof(buffer) == 6, "Invalid report size");
 
 		/* Encode report. */
 		buffer[0] = REPORT_ID_MOUSE;
@@ -158,12 +168,16 @@ static void send_mouse_report(const struct hid_mouse_event *event)
 	__ASSERT_NO_MSG(sent_report_type == IN_REPORT_COUNT);
 	sent_report_type = IN_REPORT_MOUSE;
 
+	k_queue_append(&myqueue, buffer_raw);
+
+#if 0
 	int err = hid_int_ep_write(usb_dev, buffer, sizeof(buffer), NULL);
 
 	if (err) {
 		LOG_ERR("Cannot send report (%d)", err);
 		report_sent(true);
 	}
+#endif
 }
 
 static void send_keyboard_report(const struct hid_keyboard_event *event)
@@ -422,6 +436,24 @@ static int usb_init(void)
 	return err;
 }
 
+static void usb_sender(void *a, void *b, void *c)
+{
+	while (true) {
+		u8_t *buffer_raw = k_queue_get(&myqueue, K_FOREVER);
+		if (!buffer_raw) {
+			LOG_ERR("fuck!!!!");
+			continue;
+		}
+		LOG_WRN("send %p", buffer_raw);
+		u8_t hid_protocol = buffer_raw[4];
+		size_t size = (hid_protocol) ?
+		    (REPORT_SIZE_MOUSE + sizeof(u8_t)) :
+		    (REPORT_SIZE_MOUSE_BOOT);
+		int err = hid_int_ep_write(usb_dev, &buffer_raw[5], size, NULL);
+		k_free(buffer_raw);
+	}
+}
+
 static bool event_handler(const struct event_header *eh)
 {
 	if (IS_ENABLED(CONFIG_DESKTOP_HID_MOUSE) &&
@@ -453,6 +485,9 @@ static bool event_handler(const struct event_header *eh)
 
 			__ASSERT_NO_MSG(!initialized);
 			initialized = true;
+
+			k_queue_init(&myqueue);
+			k_thread_create(&thread, stack, 2048, usb_sender, NULL, NULL, NULL, 0, 0, 0);
 
 			if (usb_init()) {
 				LOG_ERR("Cannot initialize");

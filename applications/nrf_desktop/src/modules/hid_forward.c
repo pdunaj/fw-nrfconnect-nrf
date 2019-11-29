@@ -158,10 +158,12 @@ static void process_mouse_report(const u8_t *data)
 
 	k_spinlock_key_t key = k_spin_lock(&lock);
 
+	bool override = false;
 	if (next_mouse_event) {
 		__ASSERT_NO_MSG(usb_busy);
 
 		LOG_WRN("Event override");
+		override = true;
 		event = next_mouse_event;
 	} else {
 		event = new_hid_mouse_event();
@@ -172,8 +174,13 @@ static void process_mouse_report(const u8_t *data)
 	event->button_bm = button_bm;
 	event->wheel     = wheel;
 
-	event->dx = x;
-	event->dy = y;
+	if (override) {
+		event->dx += x;
+		event->dy += y;
+	} else {
+		event->dx = x;
+		event->dy = y;
+	}
 
 	if (!usb_busy) {
 		EVENT_SUBMIT(event);
