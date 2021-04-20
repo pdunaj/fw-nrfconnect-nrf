@@ -1,0 +1,28 @@
+#
+# Copyright (c) 2021 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+#
+
+menu "Event options"
+
+comment "Initially logged events"
+
+config PELION_INIT_LOG_NET_STATE_EVENT
+	bool "Log net state event"
+	depends on LOG
+	default y
+
+config PELION_INIT_LOG_PELION_STATE_EVENT
+	bool "Log Pelion state event"
+	depends on LOG
+	default y
+
+config PELION_INIT_LOG_PELION_CREATE_OBJECTS_EVENT
+	bool "Log Pelion create objects event"
+	depends on LOG
+	default y
+
+rsource "Kconfig.keep_alive_event"
+
+endmenu
