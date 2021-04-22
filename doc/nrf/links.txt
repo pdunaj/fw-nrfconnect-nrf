@@ -464,6 +464,12 @@
 .. _`Edge Impulse's data forwarder`: https://docs.edgeimpulse.com/docs/cli-data-forwarder
 .. _`Edge Impulse CLI installation guide`: https://docs.edgeimpulse.com/docs/cli-installation
 
+.. ### Source: pelion.com
+
+.. _`Pelion`: https://pelion.com/
+.. _`Pelion documentation`: https://developer.pelion.com/docs/
+.. _`Device Management`: https://developer.pelion.com/docs/device-management/current/welcome/index.html
+
 .. ### Source: other
 
 .. _`Ninja documentation`: https://ninja-build.org/manual.html
