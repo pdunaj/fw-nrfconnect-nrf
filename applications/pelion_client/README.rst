@@ -10,16 +10,64 @@ Pelion client
 The Pelion client demonstrates the integration of the Pelion library within the |NCS|.
 It creates two standard OMA resources to show communication with the Pelion cloud platform.
 One OMA resource reacts to button presses, while the other implements the stopwatch counter.
-The state of both resources can be tracked online.
+The state of both resources can be tracked in the cloud platform.
 
 .. note::
     The code is currently a work in progress and is not fully optimized yet.
     It will undergo changes and improvements in the future.
 
+Pelion is an IoT cloud platform, initially created by Arm.
+It offers services in the fields of connectivity, device management, and edge computing, which allow you to remotely manage and update your IoT devices.
+To read more, see the `Pelion`_ website and the `Pelion documentation`_ page.
+
+The Pelion client application integrates `Device Management`_ features of the Pelion platform, namely transport and firmware update deployment.
+
 Overview
 ********
 
-The application is intended to be used with an instance of the Pelion platform running on the cloud side.
+# PROVISIONING
+
+At boot, the application opens the flash storage (fcc_init) and, unless you decide to reset the flash storage (fcc_storage_delete), starts in Pelion's developer flow and attempts to load Pelion's bootstrap data (fcc_developer_flow).
+The bootstrap data is used to access the Pelion cloud.
+A successful connection triggers the generation of the device identity in the Pelion cloud, which is then used for subsequent secured connection with the cloud.
+
+# PELION INIT
+
+The application then starts the Pelion module, which after initialization attaches several client callbacks required for informing the application about the connection status with the Pelion cloud.
+, which wraps these callbacks into Pelion state events
+
+PELION_STATE_DISABLED
+PELION_STATE_INITIALIZED
+PELION_STATE_REGISTERED
+
+# CREATION OF RES
+
+The application initializes the cloud client.
+It then triggers the creation of objects (create_object_event) with their related OMA resources.
+Each module used by the application creates the resources using the M2MInterfaceFactory.
+For the Pelion client application, these are OMA Digital Input (oma_digital_input.cpp) and OMA Stopwatch (oma_stopwatch.cpp).
+
+http://www.openmobilealliance.org/wp/omna/lwm2m/lwm2mregistry.html
+https://raw.githubusercontent.com/OpenMobileAlliance/lwm2m-registry/prod/3200.xml
+
+# NETWORK CONNECTION AND SETUP
+
+The cloud client is then set up and starts communicating with the network, either LTE or OpenThread.
+Pelion is started and the whole communication is done through sockets.
+
+# COMMUNICATION
+
+Pelion then sends the communication within Pelion.
+You can locate the device in Pelion's device directory and start interacting with it.
+
+# PERFORMING UPDATE
+
+When the Pelion library receives the update image and an update campaign is scheduled in Pelion cloud, all devices for the given campaign can receive the update image.
+See LINK TO PELION DOCS for details.
+
+
+
+
 
 The application builds the Pelion resources for the given development kit.
 It then connects to the Pelion platform and sends data to the web server over XYZ.
@@ -30,11 +78,26 @@ This instance gives you access to Device Management Update functionalities, incl
 Pelion platform integration
 ===========================
 
-Pelion is an IoT cloud platform, initially created by Arm.
-It offers services in the fields of connectivity, device management, and edge computing, which allow you to remotely manage and update your IoT devices.
-To read more, see the `Pelion`_ website and the `Pelion documentation`_ page.
+Pelion creates keys to secure connection with the Pelion network using certificate keys.
+This enables sending firmware updates and getting data from the cloud in a secure manner.
+For this to work, Pelion needs to provision the Pelion client application with keys that secure the connection, taken from the bootstrap device certificate table in .c.
+This is done with the developer flow (fcc developer flow) or with the production tool.
 
-The Pelion client application integrates `Device Management`_ features of the Pelion platform, namely transport and firmware update deployment.
+The application uses Pelion's *developer flow*.
+Once logged to the Pelion platform, you need to download and add the certificate with developer credentials, which is populated when downloaded: https://github.com/nrfconnect/sdk-nrf/blob/master/applications/pelion_client/configuration/common/mbed_cloud_dev_credentials.c
+
+Memory allocation (for Pelion library)
+======================================
+
+The application uses a flash sector for Pelion data storage.
+This sector is used to store Pelion credentials, application information, and update data.
+It is managed by Pelion's file data system.
+The application uses Pelion's functions to populate this flash sector (fcc_developer_flow()).
+If the sector is not empty, the application does not perform any action.
+
+
+
+
 
 Firmware architecture
 =====================
@@ -51,8 +114,14 @@ The following figure shows ...
 Transport structure
 ===================
 
+Pelion is started and the whole communication is done through sockets.
+
+
 Device Firmware Update
 ======================
+
+When the Pelion library receives the update image and an update campaign is scheduled in Pelion cloud, all devices for the given campaign can receive the update image.
+See LINK TO PELION DOCS for details.
 
 Device modes
 ============
@@ -89,6 +158,8 @@ Pelion web platform setup
 =========================
 
 The application requires you to generate and download a developer certificate from the Pelion web service.
+
+Follow steps: https://developer.pelion.com/docs/device-management/current/provisioning-process/provisioning-development-devices.html
 
 Application setup
 =================
@@ -131,13 +202,12 @@ When the DTS overlay filename matches the build target, the overlay is automatic
 Building and running
 ********************
 
-Before building and running the firmware ensure that the cloud side is set up.
+Before building and running the firmware, ensure that the Pelion cloud platform is set up.
 Also, the device must be provisioned and configured with the certificates according to the instructions for the respective cloud for the connection attempt to succeed.
 
 .. note::
 
-   This application supports :ref:`ug_bootloader`, which is disabled by default.
-   To enable the immutable bootloader, set ``CONFIG_SECURE_BOOT=y``.
+   This application supports :ref:`mcuboot:mcuboot_wrapper`, which is enabled by default.
 
 
 .. |sample path| replace:: :file:`applications/pelion_client`
