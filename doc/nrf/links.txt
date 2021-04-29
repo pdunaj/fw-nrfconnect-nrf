@@ -467,8 +467,11 @@
 .. ### Source: pelion.com
 
 .. _`Pelion`: https://pelion.com/
+.. _`Device Management Portal`: https://portal.mbedcloud.com//login
 .. _`Pelion documentation`: https://developer.pelion.com/docs/
-.. _`Device Management`: https://developer.pelion.com/docs/device-management/current/welcome/index.html
+.. _`Device Management documentation`: https://developer.pelion.com/docs/device-management/current/welcome/index.html
+.. _`Provisioning devices for Pelion Device Management`: https://developer.pelion.com/docs/device-management/current/provisioning-process/index.html
+.. _`Provisioning development devices`: https://developer.pelion.com/docs/device-management/current/provisioning-process/provisioning-development-devices.html
 
 .. ### Source: other
 
