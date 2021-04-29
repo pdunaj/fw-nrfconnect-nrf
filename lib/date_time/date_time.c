@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <date_time.h>
@@ -46,7 +46,8 @@ LOG_MODULE_REGISTER(date_time, CONFIG_DATE_TIME_LOG_LEVEL);
 
 struct ntp_servers {
 	const char *server_str;
-	struct addrinfo *addr;
+	struct sockaddr addr;
+	socklen_t addrlen;
 };
 
 struct ntp_servers servers[] = {
@@ -70,6 +71,18 @@ static struct time_aux {
 } time_aux;
 
 static bool initial_valid_time;
+static date_time_evt_handler_t app_evt_handler;
+
+static struct date_time_evt evt;
+
+static void date_time_notify_event(const struct date_time_evt *evt)
+{
+	__ASSERT(evt != NULL, "Library event not found");
+
+	if (app_evt_handler != NULL) {
+		app_evt_handler(evt);
+	}
+}
 
 #if defined(CONFIG_DATE_TIME_MODEM)
 static int time_modem_get(void)
@@ -131,33 +144,48 @@ static int sntp_time_request(struct ntp_servers *server, uint32_t timeout,
 {
 	int err;
 	static struct addrinfo hints;
+	struct addrinfo *addrinfo;
 	struct sntp_ctx sntp_ctx;
 
-	hints.ai_family = AF_INET;
+	if (IS_ENABLED(CONFIG_DATE_TIME_IPV6)) {
+		hints.ai_family = AF_INET6;
+	} else {
+		hints.ai_family = AF_INET;
+	}
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_protocol = 0;
 
-	if (server->addr == NULL) {
+	if (server->addrlen == 0) {
 		err = getaddrinfo(server->server_str, NTP_DEFAULT_PORT, &hints,
-				  &server->addr);
+				  &addrinfo);
 		if (err) {
-			LOG_ERR("getaddrinfo, error: %d", err);
+			LOG_WRN("getaddrinfo, error: %d", err);
 			return err;
 		}
+
+		if (addrinfo->ai_addrlen > sizeof(server->addr)) {
+			LOG_WRN("getaddrinfo, addrlen: %d > %d",
+				addrinfo->ai_addrlen, sizeof(server->addr));
+			freeaddrinfo(addrinfo);
+			return -ENOMEM;
+		}
+
+		memcpy(&server->addr, addrinfo->ai_addr, addrinfo->ai_addrlen);
+		server->addrlen = addrinfo->ai_addrlen;
+		freeaddrinfo(addrinfo);
 	} else {
 		LOG_DBG("Server address already obtained, skipping DNS lookup");
 	}
 
-	err = sntp_init(&sntp_ctx, server->addr->ai_addr,
-			server->addr->ai_addrlen);
+	err = sntp_init(&sntp_ctx, &server->addr, server->addrlen);
 	if (err) {
-		LOG_ERR("sntp_init, error: %d", err);
+		LOG_WRN("sntp_init, error: %d", err);
 		goto socket_close;
 	}
 
 	err = sntp_query(&sntp_ctx, timeout, time);
 	if (err) {
-		LOG_ERR("sntp_query, error: %d", err);
+		LOG_WRN("sntp_query, error: %d", err);
 	}
 
 socket_close:
@@ -187,7 +215,7 @@ static int time_NTP_server_get(void)
 		return 0;
 	}
 
-	LOG_ERR("Not getting time from any NTP server");
+	LOG_WRN("Not getting time from any NTP server");
 
 	return -ENODATA;
 }
@@ -223,23 +251,12 @@ static void new_date_time_get(void)
 		if (err == 0) {
 			LOG_DBG("Time successfully obtained");
 			initial_valid_time = true;
+			date_time_notify_event(&evt);
 			continue;
 		}
 
 		LOG_DBG("Current time not valid");
 
-#if defined(CONFIG_DATE_TIME_MODEM)
-		LOG_DBG("Fallback on cellular network time");
-
-		err = time_modem_get();
-		if (err == 0) {
-			LOG_DBG("Time from cellular network obtained");
-			initial_valid_time = true;
-			continue;
-		}
-
-		LOG_DBG("Not getting cellular network time");
-#endif
 #if defined(CONFIG_DATE_TIME_NTP)
 		LOG_DBG("Fallback on NTP server");
 
@@ -247,18 +264,37 @@ static void new_date_time_get(void)
 		if (err == 0) {
 			LOG_DBG("Time from NTP server obtained");
 			initial_valid_time = true;
+			evt.type = DATE_TIME_OBTAINED_NTP;
+			date_time_notify_event(&evt);
 			continue;
 		}
 
 		LOG_DBG("Not getting time from NTP server");
 #endif
+#if defined(CONFIG_DATE_TIME_MODEM)
+		LOG_DBG("Fallback on cellular network time");
+
+		err = time_modem_get();
+		if (err == 0) {
+			LOG_DBG("Time from cellular network obtained");
+			initial_valid_time = true;
+			evt.type = DATE_TIME_OBTAINED_MODEM;
+			date_time_notify_event(&evt);
+			continue;
+		}
+
+		LOG_DBG("Not getting cellular network time");
+#endif
 		LOG_DBG("Not getting time from any time source");
+
+		evt.type = DATE_TIME_NOT_OBTAINED;
+		date_time_notify_event(&evt);
 	}
 }
 
 K_THREAD_DEFINE(time_thread, CONFIG_DATE_TIME_THREAD_SIZE,
 		new_date_time_get, NULL, NULL, NULL,
-		K_HIGHEST_APPLICATION_THREAD_PRIO, 0, 0);
+		K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);
 
 static void date_time_handler(struct k_work *work)
 {
@@ -273,7 +309,7 @@ static void date_time_handler(struct k_work *work)
 	}
 }
 
-static int date_time_init(struct device *unused)
+static int date_time_init(const struct device *unused)
 {
 	k_delayed_work_init(&time_work, date_time_handler);
 	k_delayed_work_submit(&time_work,
@@ -345,6 +381,9 @@ int date_time_set(const struct tm *new_date_time)
 	time_aux.last_date_time_update = k_uptime_get();
 	time_aux.date_time_utc = (int64_t)timeutil_timegm64(new_date_time) * 1000;
 
+	evt.type = DATE_TIME_OBTAINED_EXT;
+	date_time_notify_event(&evt);
+
 	return 0;
 }
 
@@ -353,7 +392,7 @@ int date_time_uptime_to_unix_time_ms(int64_t *uptime)
 	int64_t uptime_prev = *uptime;
 
 	if (!initial_valid_time) {
-		LOG_ERR("Valid time not currently available");
+		LOG_WRN("Valid time not currently available");
 		return -ENODATA;
 	}
 
@@ -365,8 +404,8 @@ int date_time_uptime_to_unix_time_ms(int64_t *uptime)
 	 */
 	if (*uptime > time_aux.date_time_utc +
 	    (k_uptime_get() - time_aux.last_date_time_update)) {
-		LOG_ERR("Uptime to large or previously converted");
-		LOG_ERR("Clear variable or set a new uptime");
+		LOG_WRN("Uptime to large or previously converted");
+		LOG_WRN("Clear variable or set a new uptime");
 		*uptime = uptime_prev;
 		return -EINVAL;
 	}
@@ -383,15 +422,42 @@ int date_time_now(int64_t *unix_time_ms)
 
 	err = date_time_uptime_to_unix_time_ms(unix_time_ms);
 	if (err) {
-		LOG_ERR("date_time_uptime_to_unix_time_ms, error: %d", err);
+		LOG_WRN("date_time_uptime_to_unix_time_ms, error: %d", err);
 		*unix_time_ms = unix_time_ms_prev;
 	}
 
 	return err;
 }
 
-int date_time_update_async(void)
+bool date_time_is_valid(void)
 {
+	return initial_valid_time;
+}
+
+void date_time_register_handler(date_time_evt_handler_t evt_handler)
+{
+	if (evt_handler == NULL) {
+		app_evt_handler = NULL;
+
+		LOG_DBG("Previously registered handler %p de-registered",
+			app_evt_handler);
+
+		return;
+	}
+
+	LOG_DBG("Registering handler %p", evt_handler);
+
+	app_evt_handler = evt_handler;
+}
+
+int date_time_update_async(date_time_evt_handler_t evt_handler)
+{
+	if (evt_handler) {
+		app_evt_handler = evt_handler;
+	} else if (app_evt_handler == NULL) {
+		LOG_DBG("No handler registered");
+	}
+
 	k_sem_give(&time_fetch_sem);
 
 	return 0;
@@ -417,6 +483,4 @@ int date_time_timestamp_clear(int64_t *unix_timestamp)
 	return 0;
 }
 
-DEVICE_INIT(date_time, "DATE_TIME",
-	    date_time_init, NULL, NULL, APPLICATION,
-	    CONFIG_APPLICATION_INIT_PRIORITY);
+SYS_INIT(date_time_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
@@ -13,10 +13,10 @@
 
 #include "event_manager.h"
 #include "selector_event.h"
-#include "power_event.h"
+#include <caf/events/power_event.h>
 
 #define MODULE selector
-#include "module_state_event.h"
+#include <caf/events/module_state_event.h>
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(MODULE, CONFIG_DESKTOP_SELECTOR_HW_LOG_LEVEL);
@@ -38,7 +38,7 @@ struct selector {
 	uint8_t position;
 };
 
-static struct device *gpio_dev[ARRAY_SIZE(port_map)];
+static const struct device *gpio_dev[ARRAY_SIZE(port_map)];
 static struct selector selectors[ARRAY_SIZE(selector_config)];
 static enum state state;
 
@@ -138,7 +138,7 @@ static int disable_interrupts_nolock(struct selector *selector)
 	return err;
 }
 
-static void selector_isr(struct device *dev, struct gpio_callback *cb,
+static void selector_isr(const struct device *dev, struct gpio_callback *cb,
 			 uint32_t pins_mask)
 {
 	uint8_t port = dev - gpio_dev[0];

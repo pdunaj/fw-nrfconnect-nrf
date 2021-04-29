@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
@@ -19,7 +19,7 @@ LOG_MODULE_REGISTER(ui_led_pwm, CONFIG_UI_LOG_LEVEL);
 #define PWM_PIN(channel) DT_PROP(PWM_NODE, ch##channel##_pin)
 
 struct led {
-	struct device *pwm_dev;
+	const struct device *pwm_dev;
 
 	size_t id;
 	struct led_color color;
@@ -55,13 +55,13 @@ static const struct led_effect effect[] = {
 	[UI_LED_ERROR_CLOUD] = LED_EFFECT_LED_BREATHE(UI_LED_ON_PERIOD_ERROR,
 					UI_LED_OFF_PERIOD_ERROR,
 					UI_LED_ERROR_CLOUD_COLOR),
-	[UI_LED_ERROR_BSD_REC] = LED_EFFECT_LED_BREATHE(UI_LED_ON_PERIOD_ERROR,
+	[UI_LED_ERROR_MODEM_REC] = LED_EFFECT_LED_BREATHE(UI_LED_ON_PERIOD_ERROR,
 					UI_LED_OFF_PERIOD_ERROR,
-					UI_LED_ERROR_BSD_REC_COLOR),
-	[UI_LED_ERROR_BSD_IRREC] = LED_EFFECT_LED_BREATHE(
+					UI_LED_ERROR_MODEM_REC_COLOR),
+	[UI_LED_ERROR_MODEM_IRREC] = LED_EFFECT_LED_BREATHE(
 					UI_LED_ON_PERIOD_ERROR,
 					UI_LED_OFF_PERIOD_ERROR,
-					UI_LED_ERROR_BSD_IRREC_COLOR),
+					UI_LED_ERROR_MODEM_IRREC_COLOR),
 	[UI_LED_ERROR_LTE_LC] = LED_EFFECT_LED_BREATHE(UI_LED_ON_PERIOD_ERROR,
 					UI_LED_OFF_PERIOD_ERROR,
 					UI_LED_ERROR_LTE_LC_COLOR),
@@ -180,7 +180,7 @@ int ui_leds_init(void)
 
 void ui_leds_start(void)
 {
-#ifdef CONFIG_DEVICE_POWER_MANAGEMENT
+#ifdef CONFIG_PM_DEVICE
 	int err = device_set_power_state(leds.pwm_dev,
 						DEVICE_PM_ACTIVE_STATE,
 						NULL, NULL);
@@ -194,7 +194,7 @@ void ui_leds_start(void)
 void ui_leds_stop(void)
 {
 	k_delayed_work_cancel(&leds.work);
-#ifdef CONFIG_DEVICE_POWER_MANAGEMENT
+#ifdef CONFIG_PM_DEVICE
 	int err = device_set_power_state(leds.pwm_dev,
 					 DEVICE_PM_SUSPEND_STATE,
 					 NULL, NULL);

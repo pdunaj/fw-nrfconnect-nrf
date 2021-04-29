@@ -1,17 +1,18 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
 #include <zephyr/types.h>
 
-#include <mgmt/smp_bt.h>
+#include <mgmt/mcumgr/smp_bt.h>
 #include <img_mgmt/img_mgmt.h>
 
 #define MODULE smp
-#include "module_state_event.h"
+#include <caf/events/module_state_event.h>
+#include <caf/events/ble_common_event.h>
 #include "ble_event.h"
 #include "dfu_lock.h"
 

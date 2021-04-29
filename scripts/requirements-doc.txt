@@ -1,0 +1,5 @@
+recommonmark==0.6.0
+CommonMark>=0.9.1
+sphinxcontrib-mscgen
+sphinx-ncs-theme==0.6.2
+pygments>=2.7.0

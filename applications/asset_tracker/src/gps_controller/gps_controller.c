@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
@@ -16,7 +16,7 @@
 LOG_MODULE_REGISTER(gps_control, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 /* Structure to hold GPS work information */
-static struct device *gps_dev;
+static const struct device *gps_dev;
 static atomic_t gps_is_enabled;
 static atomic_t gps_is_active;
 static struct k_work_q *app_work_q;
@@ -102,7 +102,7 @@ static void stop(struct k_work *work)
 		LOG_ERR("Failed to disable GPS, error: %d", err);
 		return;
 	}
-
+	k_delayed_work_cancel(&start_work);
 	atomic_set(&gps_is_enabled, 0);
 	gps_control_set_active(false);
 	LOG_INF("GPS operation was stopped");
@@ -152,6 +152,11 @@ int gps_control_init(struct k_work_q *work_q, gps_event_handler_t handler)
 
 	if ((work_q == NULL) || (handler == NULL)) {
 		return -EINVAL;
+	}
+
+	if (IS_ENABLED(CONFIG_AGPS_SINGLE_CELL_ONLY)) {
+		LOG_INF("Cell-based location enabled, skipping GPS init");
+		return 0;
 	}
 
 	app_work_q = work_q;

@@ -6,6 +6,10 @@
 Vendor hooks
 ############
 
+.. contents::
+   :local:
+   :depth: 2
+
 Vendor hooks are a software mechanism that allows for using enhanced application features provided by a specific vendor.
 For example, they allow you to add radio or crypto functionalities, whose settings will be managed from the host device.
 
@@ -13,7 +17,7 @@ In |NCS|, your implementation of the vendor hooks file is compiled by OpenThread
 The only information needed for compilation is the file location.
 This allows you to implement new features in the application or elsewhere without having to modify OpenThread components.
 
-Vendor hooks are strictly connected to the Spinel protocol used in serial communication between host device and the MCU board working in Thread NCP/RCP architecture.
+Vendor hooks are strictly connected to the `Spinel protocol`_ used in serial communication between host device and the MCU board working in :ref:`Thread NCP or RCP architecture <thread_architectures_designs_cp>`.
 Spinel uses serial frames with commands that describe the activity to take (for example, get or set), and with properties that define the object on which the activity is to be performed.
 You can use the available commands and properties, but also define your set of instructions to provide new features by using the vendor hooks.
 
@@ -162,27 +166,26 @@ You should define these methods beforehand.
 Handlers methods can check property ID and perform different actions depending on their value.
 They can also ignore the value, if for example the property was defined by other vendor and you want to filter it out.
 
-For detailed description about how to enable the vendor hook feature in a sample, see the :ref:`Thread NCP sample <ot_ncp_sample>` documentation.
+For detailed description about how to enable the vendor hook feature in a sample, see the :ref:`ot_coprocessor_sample` sample documentation.
 
 .. _ug_thread_vendor_hooks_testing:
 
 Testing vendor hooks after configuration
 ****************************************
 
-To test the vendor hook feature, you need a development kit that is programmed with either the :ref:`Thread NCP <ot_ncp_sample>` or another compatible sample.
+To test the vendor hook feature, you need a development kit that is programmed with either the :ref:`ot_coprocessor_sample` sample or another compatible sample.
 
 Complete the following steps:
 
 1. Connect the Thread NCP development kit's SEGGER J-Link USB port to the USB port on your PC with an USB cable.
-#. Get the board's serial port name (e.g. /dev/ttyACM0).
-#. Open a shell and run PySpinel by using the following command:
+#. Get the development kit's serial port name (for example, :file:`/dev/ttyACM0`).
+#. Open a shell and run PySpinel by using the following command, with *baudrate* set to ``1000000`` and *serial_port_name* set to the port name from the previous step:
 
-   .. code-block:: console
+   .. parsed-literal::
+      :class: highlight
 
-      python3 spinel-cli.py -u <serial_port_name> -b <baudrate>
+      python3 spinel-cli.py -u *serial_port_name* -b *baudrate*
 
-   For ``baudrate``, use value 1000000.
-   For ``serial_port_name``, use the value from the previous step.
 #. In the PySpinel shell, run the following command to check the list of available vendor properties:
 
    .. code-block:: console
@@ -207,7 +210,7 @@ Complete the following steps:
 
    .. code-block:: console
 
-      Nordic Seminconductor
+      Nordic Semiconductor
       Done
 
 #. In the PySpinel shell, run the ``auto_ack`` command to get the current state of the device auto ACK mode:

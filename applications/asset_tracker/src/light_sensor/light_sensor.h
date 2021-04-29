@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #ifndef LIGHT_SENSOR_H_
@@ -29,6 +29,8 @@ struct light_sensor_data {
 	int32_t green;
 	int32_t blue;
 	int32_t ir;
+	/** Sensor sample uptime. */
+	int64_t ts;
 };
 
 typedef void (*light_sensor_data_ready_cb)(void);

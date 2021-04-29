@@ -1,17 +1,16 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <string.h>
 #include <shell/shell.h>
 
 #include <zboss_api.h>
-#include <zb_error_handler.h>
+#include <zigbee/zigbee_error_handler.h>
 #include <zb_nrf_platform.h>
 #include "zigbee_cli.h"
-#include "zigbee_cli_utils.h"
 
 #define IC_ADD_HELP \
 	("Add install code for device with given eui64.\n" \
@@ -440,6 +439,22 @@ static int cmd_zb_channel(const struct shell *shell, size_t argc, char **argv)
 	return 0;
 }
 
+#ifndef CONFIG_ZIGBEE_LIBRARY_PRODUCTION
+
+static void zb_secur_ic_add_cb(zb_ret_t status)
+{
+	if (status != RET_OK) {
+		zb_cli_print_error(ic_add_ctx.shell, "Failed to add IC",
+				   ZB_FALSE);
+	} else {
+		zb_cli_print_done(ic_add_ctx.shell, ZB_FALSE);
+	}
+
+	ic_add_ctx.taken = false;
+}
+
+#endif /* !CONFIG_ZIGBEE_LIBRARY_PRODUCTION */
+
 /**@brief Function adding install code, to be executed in Zigbee thread context.
  *
  * @param[in] param Unused param.
@@ -448,6 +463,7 @@ void zb_install_code_add(zb_uint8_t param)
 {
 	ARG_UNUSED(param);
 
+#ifdef CONFIG_ZIGBEE_LIBRARY_PRODUCTION
 	if (zb_secur_ic_add(ic_add_ctx.addr, ZB_IC_TYPE_128, ic_add_ctx.ic)
 	    != RET_OK) {
 		zb_cli_print_error(ic_add_ctx.shell, "Failed to add IC",
@@ -455,9 +471,15 @@ void zb_install_code_add(zb_uint8_t param)
 	} else {
 		zb_cli_print_done(ic_add_ctx.shell, ZB_FALSE);
 	}
-	ic_add_ctx.taken = false;
-}
 
+	ic_add_ctx.taken = false;
+
+#else /* !CONFIG_ZIGBEE_LIBRARY_PRODUCTION */
+	zb_secur_ic_add(ic_add_ctx.addr, ZB_IC_TYPE_128, ic_add_ctx.ic, zb_secur_ic_add_cb);
+	zb_cli_print_done(ic_add_ctx.shell, ZB_FALSE);
+
+#endif /* CONFIG_ZIGBEE_LIBRARY_PRODUCTION */
+}
 
 /**@brief Set install code on the device, add information about the install code
  *  on the trust center, set the trust center install code policy.

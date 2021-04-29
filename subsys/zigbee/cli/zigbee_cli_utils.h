@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #ifndef ZIGBEE_CLI_UTILS_H__
@@ -14,7 +14,7 @@
 #include <shell/shell.h>
 
 #include <zboss_api.h>
-#include <zigbee_helpers.h>
+#include <zigbee/zigbee_app_utils.h>
 
 /**@brief Finish the command by dumping 'Done'.
  *
@@ -24,14 +24,14 @@ static inline void zb_cli_print_done(const struct shell *shell,
 				     bool prepend_newline)
 {
 	shell_fprintf(shell, SHELL_NORMAL,
-		      prepend_newline ? "\nDone\n" : "Done\n");
+		      (prepend_newline ? "\nDone\n" : "Done\n"));
 }
 
 /**@brief Print error message to the console.
  *
- * @param message         Pointer to the message which should be printed
- *                        as an error.
- * @param prepend_newline Whether to prepend a newline.
+ * @param message          Pointer to the message which should be printed
+ *                         as an error.
+ * @param prepend_newline  Whether to prepend a newline.
  */
 static inline void zb_cli_print_error(const struct shell *shell,
 				      const char *message, bool prepend_newline)
@@ -72,13 +72,13 @@ static inline void zb_cli_print_error(const struct shell *shell,
 
 /**@brief Convert ZCL attribute value to string.
  *
- * @param str_buf[out]    Pointer to a string buffer which will be filled.
- * @param buf_len[in]     String buffer length.
- * @param attr_type[in]   ZCL attribute type value.
- * @param attr[in]        Pointer to ZCL attribute value.
+ * @param[out] str_buf    Pointer to a string buffer which will be filled.
+ * @param[in]  buf_len    String buffer length.
+ * @param[in]  attr_type  ZCL attribute type value.
+ * @param[in]  attr       Pointer to ZCL attribute value.
  *
- * @return number of bytes written into string bufferor negative value
- * on error.
+ * @return Number of bytes written into string buffer or negative value
+ *         on error.
  */
 int zb_cli_zcl_attr_to_str(char *str_buf, uint16_t buf_len,
 			   zb_uint16_t attr_type, zb_uint8_t *attr);
@@ -115,7 +115,7 @@ int zb_cli_sscan_uint(const char *bp, uint8_t *value, uint8_t size,
 
 /**@brief Print buffer as hex string.
  *
- * @param shell    Pointer to shell instance.
+ * @param shell    Pointer to the shell instance.
  * @param data     Pointer to data to be printed out.
  * @param size     Data size in bytes
  * @param reverse  If True then data is printed out in reverse order.

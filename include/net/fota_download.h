@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 /** @file fota_download.h
@@ -40,6 +40,20 @@ enum fota_download_evt_id {
 	FOTA_DOWNLOAD_EVT_ERASE_DONE,
 	/** FOTA download error. */
 	FOTA_DOWNLOAD_EVT_ERROR,
+	/** FOTA download cancelled. */
+	FOTA_DOWNLOAD_EVT_CANCELLED
+};
+
+/**
+ * @brief FOTA download error cause values.
+ */
+enum fota_download_error_cause {
+	/** No error, used when event ID is not FOTA_DOWNLOAD_EVT_ERROR. */
+	FOTA_DOWNLOAD_ERROR_CAUSE_NO_ERROR,
+	/** Downloading the update failed. The download may be retried. */
+	FOTA_DOWNLOAD_ERROR_CAUSE_DOWNLOAD_FAILED,
+	/** The update is invalid and was rejected. Retry will not help. */
+	FOTA_DOWNLOAD_ERROR_CAUSE_INVALID_UPDATE,
 };
 
 /**
@@ -47,8 +61,13 @@ enum fota_download_evt_id {
  */
 struct fota_download_evt {
 	enum fota_download_evt_id id;
-	/** Download progress % */
-	int progress;
+
+	union {
+		/** Error cause. */
+		enum fota_download_error_cause cause;
+		/** Download progress %. */
+		int progress;
+	};
 };
 
 /**
@@ -79,7 +98,7 @@ int fota_download_init(fota_download_callback_t client_callback);
  * @param sec_tag Security tag you want to use with HTTPS set to -1 to Disable.
  * @param apn Access Point Name to use or NULL to use the default APN.
  * @param fragment_size Fragment size to be used for the download.
- *			If 0, CONFIG_DOWNLOAD_CLIENT_HTTP_FRAG_SIZE is used.
+ *			If 0, @option{CONFIG_DOWNLOAD_CLIENT_HTTP_FRAG_SIZE} is used.
  *
  * @retval 0	     If download has started successfully.
  * @retval -EALREADY If download is already ongoing.
@@ -87,6 +106,23 @@ int fota_download_init(fota_download_callback_t client_callback);
  */
 int fota_download_start(const char *host, const char *file, int sec_tag,
 			const char *apn, size_t fragment_size);
+
+/**@brief Cancel FOTA image downloading.
+ *
+ * @retval 0       If FOTA download is cancelled successfully.
+ * @retval -EAGAIN If download is not started, aborted or completed.
+ *                 Otherwise, a negative value is returned.
+ */
+int fota_download_cancel(void);
+
+/**@brief Get target image type.
+ *
+ * Image type becomes known after download starts.
+ *
+ * @retval 0 Unknown type before download starts.
+ *           Otherwise, a type defined in enum dfu_target_image_type.
+ */
+int fota_download_target(void);
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <stdio.h>
@@ -29,6 +29,12 @@
 #include <nrf_cc310_platform_abort.h>
 #include <nrf_cc310_platform_mutex.h>
 #endif /* CONFIG_NRF_CC310_PLATFORM) */
+
+/* Found in nrfxlib/nrf_security/mbedtls/mbedtls_heap.c
+ * Used for reallocating the heap between suites.
+ */
+extern void _heap_init(void);
+extern void _heap_free(void);
 
 /* Points to either CTR or HMAC drbg random depending on what's compiled in */
 extern int (*drbg_random)(void *, unsigned char *, size_t);

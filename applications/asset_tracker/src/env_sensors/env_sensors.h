@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #ifndef ENV_SENSORS_H_
@@ -44,6 +44,8 @@ typedef struct {
 	env_sensor_t type;
 	/** Sensor sample value. */
 	double value;
+	/** Sensor sample uptime. */
+	int64_t ts;
 } env_sensor_data_t;
 
 typedef void (*env_sensors_data_ready_cb)(void);

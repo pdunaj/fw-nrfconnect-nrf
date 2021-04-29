@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <modem/at_cmd_parser.h>
@@ -530,8 +530,8 @@ parse:
 			LOG_ERR("Unable to obtain short: %d", err);
 			return err;
 		}
-		err = snprintf(buf, buf_size, "%d", param_value);
-		if ((err <= 0) || (err > buf_size)) {
+		len = snprintf(buf, buf_size, "%d", param_value);
+		if ((len <= 0) || (len > buf_size)) {
 			return -EMSGSIZE;
 		}
 	} else if (modem_data[info]->data_type == AT_PARAM_TYPE_STRING) {
@@ -652,9 +652,13 @@ int modem_info_rsrp_register(rsrp_cb_t cb)
 
 int modem_info_init(void)
 {
-	/* Init at_cmd_parser storage module */
-	int err = at_params_list_init(&m_param_list,
-				CONFIG_MODEM_INFO_MAX_AT_PARAMS_RSP);
+	int err = 0;
+
+	if (m_param_list.params == NULL) {
+		/* Init at_cmd_parser storage module */
+		err = at_params_list_init(&m_param_list,
+					  CONFIG_MODEM_INFO_MAX_AT_PARAMS_RSP);
+	}
 
 	return err;
 }

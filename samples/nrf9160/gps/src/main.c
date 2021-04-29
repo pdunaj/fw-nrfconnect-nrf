@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
@@ -31,21 +31,32 @@
 #ifdef CONFIG_BOARD_NRF9160DK_NRF9160NS
 #define AT_MAGPIO      "AT\%XMAGPIO=1,0,0,1,1,1574,1577"
 #ifdef CONFIG_GPS_SAMPLE_ANTENNA_ONBOARD
-#define AT_COEX0       "AT\%XCOEX0=1,1,1570,1580"
+#define AT_COEX0       "AT\%XCOEX0=1,1,1565,1586"
 #elif CONFIG_GPS_SAMPLE_ANTENNA_EXTERNAL
 #define AT_COEX0       "AT\%XCOEX0"
 #endif
-#endif
+#endif /* CONFIG_BOARD_NRF9160DK_NRF9160NS */
 
-static const char            update_indicator[] = {'\\', '|', '/', '-'};
-static const char            at_commands[][31]  = {
-					AT_XSYSTEMMODE,
-#ifdef CONFIG_BOARD_NRF9160DK_NRF9160NS
-					AT_MAGPIO,
-					AT_COEX0,
+#ifdef CONFIG_BOARD_THINGY91_NRF9160NS
+#define AT_MAGPIO      "AT\%XMAGPIO=1,1,1,7,1,746,803,2,698,748,2,1710,2200," \
+			"3,824,894,4,880,960,5,791,849,7,1565,1586"
+#ifdef CONFIG_GPS_SAMPLE_ANTENNA_ONBOARD
+#define AT_COEX0       "AT\%XCOEX0=1,1,1565,1586"
+#elif CONFIG_GPS_SAMPLE_ANTENNA_EXTERNAL
+#define AT_COEX0       "AT\%XCOEX0"
 #endif
-					AT_ACTIVATE_GPS
-				};
+#endif /* CONFIG_BOARD_THINGY91_NRF9160NS */
+
+static const char update_indicator[] = {'\\', '|', '/', '-'};
+static const char *const at_commands[] = {
+	AT_XSYSTEMMODE,
+#if defined(CONFIG_BOARD_NRF9160DK_NRF9160NS) || \
+	defined(CONFIG_BOARD_THINGY91_NRF9160NS)
+	AT_MAGPIO,
+	AT_COEX0,
+#endif
+	AT_ACTIVATE_GPS
+};
 
 static int                   gnss_fd;
 static char                  nmea_strings[10][NRF_GNSS_NMEA_MAX_LEN];
@@ -57,7 +68,7 @@ static nrf_gnss_data_frame_t last_pvt;
 
 K_SEM_DEFINE(lte_ready, 0, 1);
 
-void bsd_recoverable_error_handler(uint32_t error)
+void nrf_modem_recoverable_error_handler(uint32_t error)
 {
 	printf("Err: %lu\n", (unsigned long)error);
 }
@@ -264,9 +275,9 @@ static void print_fix_data(nrf_gnss_data_frame_t *pvt_data)
 	printf("Altitude:   %f\n", pvt_data->pvt.altitude);
 	printf("Speed:      %f\n", pvt_data->pvt.speed);
 	printf("Heading:    %f\n", pvt_data->pvt.heading);
-	printk("Date:       %02u-%02u-%02u\n", pvt_data->pvt.datetime.day,
+	printk("Date:       %02u-%02u-%02u\n", pvt_data->pvt.datetime.year,
 					       pvt_data->pvt.datetime.month,
-					       pvt_data->pvt.datetime.year);
+					       pvt_data->pvt.datetime.day);
 	printk("Time (UTC): %02u:%02u:%02u\n", pvt_data->pvt.datetime.hour,
 					       pvt_data->pvt.datetime.minute,
 					      pvt_data->pvt.datetime.seconds);
@@ -298,9 +309,8 @@ int process_gps_data(nrf_gnss_data_frame_t *gps_data)
 			nmea_string_cnt = 0;
 			got_fix = false;
 
-			if ((gps_data->pvt.flags &
-				NRF_GNSS_PVT_FLAG_FIX_VALID_BIT)
-				== NRF_GNSS_PVT_FLAG_FIX_VALID_BIT) {
+			if (gps_data->pvt.flags
+					& NRF_GNSS_PVT_FLAG_FIX_VALID_BIT) {
 
 				got_fix = true;
 				fix_timestamp = k_uptime_get();
@@ -332,7 +342,7 @@ int process_gps_data(nrf_gnss_data_frame_t *gps_data)
 			}
 			activate_lte(false);
 			gnss_ctrl(GNSS_RESTART);
-			k_sleep(K_MSEC(2000));
+			k_msleep(2000);
 #endif
 			break;
 
@@ -435,7 +445,7 @@ int main(void)
 			printk("---------------------------------");
 		}
 
-		k_sleep(K_MSEC(500));
+		k_msleep(500);
 	}
 
 	return 0;

@@ -3,6 +3,10 @@
 nRF9160: HTTPS Client
 #####################
 
+.. contents::
+   :local:
+   :depth: 2
+
 The HTTPS Client sample demonstrates a minimal implementation of HTTP communication.
 It shows how to set up a TLS session towards an HTTPS server and how to send an HTTP request.
 
@@ -11,16 +15,16 @@ Requirements
 
 The sample supports the following development kit:
 
-.. include:: /includes/boardname_tables/sample_boardnames.txt
-   :start-after: set5_start
-   :end-before: set5_end
+.. table-from-rows:: /includes/sample_board_rows.txt
+   :header: heading
+   :rows: nrf9160dk_nrf9160ns
 
 .. include:: /includes/spm.txt
 
 Overview
 ********
 
-The sample first initializes the :ref:`nrfxlib:bsdlib` and AT communications.
+The sample first initializes the :ref:`nrfxlib:nrf_modem` and AT communications.
 Next, it provisions a root CA certificate to the modem using the :ref:`modem_key_mgmt` library.
 Provisioning must be done before connecting to the LTE network, because the certificates can only be provisioned when the device is not connected.
 
@@ -48,7 +52,7 @@ Building and running
 Testing
 =======
 
-After programming the sample to your board, test it by performing the following steps:
+After programming the sample to your development kit, test it by performing the following steps:
 
 1. Connect the USB cable and power on or reset your nRF9160 DK.
 #. Open a terminal emulator and observe that the sample starts, provisions certificates, connects to the LTE network and to google.com, and then sends an HTTP HEAD request.
@@ -75,18 +79,17 @@ The sample shows the following output:
 Dependencies
 ************
 
-This sample uses the following libraries:
+This sample uses the following |NCS| libraries:
 
-From |NCS|
-  * :ref:`at_cmd_readme`
-  * :ref:`at_notif_readme`
-  * :ref:`modem_key_mgmt`
-  * ``lib/lte_link_control``
+* :ref:`at_cmd_readme`
+* :ref:`at_notif_readme`
+* :ref:`modem_key_mgmt`
+* :ref:`lte_lc_readme`
 
-From nrfxlib
-  * :ref:`nrfxlib:bsdlib`
+It uses the following `sdk-nrfxlib`_ library:
 
-In addition, it uses the following samples:
+* :ref:`nrfxlib:nrf_modem`
 
-From |NCS|
-  * :ref:`secure_partition_manager`
+In addition, it uses the following sample:
+
+* :ref:`secure_partition_manager`

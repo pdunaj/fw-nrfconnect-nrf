@@ -3,6 +3,10 @@
 nRF9160: GPS sockets and SUPL client library
 ############################################
 
+.. contents::
+   :local:
+   :depth: 2
+
 The GPS sample demonstrates how to retrieve `GPS`_ data.
 If Secure User-Plane Location (SUPL) support is enabled, it also shows how to improve the GPS fix accuracy and fix speed with `A-GPS`_ data from a SUPL server.
 See :ref:`supl_client` for information on enabling SUPL support for the sample.
@@ -30,9 +34,9 @@ Requirements
 
 The sample supports the following development kit:
 
-.. include:: /includes/boardname_tables/sample_boardnames.txt
-   :start-after: set5_start
-   :end-before: set5_end
+.. table-from-rows:: /includes/sample_board_rows.txt
+   :header: heading
+   :rows: nrf9160dk_nrf9160ns
 
 The sample can be optionally used with the SUPL Client library (for details on download, see :ref:`supl_client`).
 
@@ -57,7 +61,7 @@ The SUPL client library is not required, and the sample will work without `A-GPS
 Testing
 =======
 
-After programming the sample and all the prerequisites to the board, you can test the sample by performing the following steps:
+After programming the sample and all the prerequisites to the development kit, you can test the sample by performing the following steps:
 
 1. Connect your nRF9160 DK to the PC using a USB cable and power on or reset your nRF9160 DK.
 2. Open a terminal emulator.
@@ -95,7 +99,7 @@ After programming the sample and all the prerequisites to the board, you can tes
                 Altitude:   116.274658
                 Speed:      0.039595
                 Heading:    0.000000
-                Date:       03-06-2020
+                Date:       2020-03-06
                 Time (UTC): 05:48:24
 
                 NMEA strings:
@@ -147,16 +151,17 @@ After programming the sample and all the prerequisites to the board, you can tes
 Dependencies
 ************
 
-This sample uses the following libraries:
+This sample uses the following |NCS| libraries:
 
-From |NCS|
-  * :ref:`secure_partition_manager`
-  * :ref:`at_cmd_readme`
-  * :ref:`at_notif_readme`
-  * :ref:`supl_client`
+* :ref:`secure_partition_manager`
+* :ref:`at_cmd_readme`
+* :ref:`at_notif_readme`
+* :ref:`supl_client`
 
-From nrfxlib
-  * :ref:`nrfxlib:bsdlib`
+It uses the following `sdk-nrfxlib`_ library:
 
-From Zephyr
-  * :ref:`net_socket_offloading`
+* :ref:`nrfxlib:nrf_modem`
+
+It uses the following Zephyr library:
+
+* :ref:`net_socket_offloading`

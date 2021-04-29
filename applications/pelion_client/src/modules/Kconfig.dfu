@@ -1,0 +1,13 @@
+#
+# Copyright (c) 2021 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+#
+
+menu "FW update"
+
+module = PELION_CLIENT_DFU
+module-str = DFU module
+source "subsys/logging/Kconfig.template.log_config"
+
+endmenu

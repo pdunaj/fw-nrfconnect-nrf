@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2018 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr/types.h>
@@ -12,6 +12,12 @@
 #include <bl_storage.h>
 #include <bl_boot.h>
 #include <bl_validation.h>
+
+#if defined(CONFIG_HW_UNIQUE_KEY_LOAD)
+#include <init.h>
+#include <hw_unique_key.h>
+SYS_INIT(hw_unique_key_load, PRE_KERNEL_2, 0);
+#endif
 
 
 static void validate_and_boot(const struct fw_info *fw_info, uint16_t slot)
@@ -47,7 +53,7 @@ static void validate_and_boot(const struct fw_info *fw_info, uint16_t slot)
 
 void main(void)
 {
-	int err = fprotect_area(PM_B0_IMAGE_ADDRESS, PM_B0_IMAGE_SIZE);
+	int err = fprotect_area(PM_B0_ADDRESS, PM_B0_SIZE);
 
 	if (err) {
 		printk("Failed to protect B0 flash, cancel startup.\n\r");

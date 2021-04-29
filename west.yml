@@ -11,9 +11,7 @@
 # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/west/index.html
 
 manifest:
-  # This west.yml requires west 0.7 or later, because the "import"
-  # feature used below was introduced then.
-  version: 0.7
+  version: "0.10"
 
   # "remotes" is a list of locations where git repositories are cloned
   # and fetched from.
@@ -29,11 +27,21 @@ manifest:
       url-base: https://github.com/ThrowTheSwitch
     - name: armmbed
       url-base: https://github.com/ARMmbed
+    - name: nanopb
+      url-base: https://github.com/nanopb
+    - name: alexa
+      url-base: https://github.com/alexa
+    - name: nordicsemi
+      url-base: https://github.com/NordicSemiconductor
+    - name: pelioniot
+      url-base: https://github.com/PelionIoT
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
   defaults:
     remote: ncs
+
+  group-filter: [-homekit, -nrf-802154]
 
   # "projects" is a list of git repositories which make up the NCS
   # source code.
@@ -46,12 +54,12 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
       repo-path: sdk-zephyr
-      revision: a87b995bec8717597a81e2eb8b68901dbdc889b4
+      revision: 6a1d340b632ec62f5abfb2e0c3e54838bbfd086e
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
         # revision. Only the projects explicitly named in the
-        # following whitelist are imported.
+        # following allowlist are imported.
         #
         # Note that the zephyr west extensions (like 'build', 'flash',
         # 'debug', etc.) are automatically provided by this import, so
@@ -59,9 +67,8 @@ manifest:
         # the zephyr project.
         #
         # Please keep this list sorted alphabetically.
-        name-whitelist:
+        name-allowlist:
           - canopennode
-          - ci-tools
           - cmsis
           - civetweb
           - edtt
@@ -73,6 +80,7 @@ manifest:
           - loramac-node
           - lvgl
           - mbedtls
+          - mcumgr
           - mipi-sys-t
           - net-tools
           - nrf_hw_models
@@ -88,30 +96,72 @@ manifest:
     # changes.
     - name: mcuboot
       repo-path: sdk-mcuboot
-      revision: 50eec26a462d8cbc171dbbdca623979294a6227b
+      revision: 3ea42d2d5a7ebc5f7c691325a9f0d90b5d64fa1d
       path: bootloader/mcuboot
-    - name: mcumgr
-      repo-path: sdk-mcumgr
-      revision: cfe5eb98a9493017448846fd1a44a9340bd0a22f
-      path: modules/lib/mcumgr
     - name: nrfxlib
       repo-path: sdk-nrfxlib
       path: nrfxlib
-      revision: d71ca932ad47e38e9ac4afef7ccbb97f289c9e8d
+      revision: fb936182435a1ae90fafbb8840e70a45d6f99a4e
+    - name: trusted-firmware-m
+      repo-path: sdk-trusted-firmware-m
+      path: modules/tee/tfm
+      revision: 3599bcc187f3ac05119b9424c859332f5acb0db3
+    - name: tfm-mcuboot # This is used by the trusted-firmware-m module.
+      repo-path: sdk-mcuboot
+      path: modules/tee/tfm-mcuboot
+      revision: 81d19f017f18f1bc6bea906d96fd45fba3672064
+    - name: connectedhomeip
+      repo-path: sdk-connectedhomeip
+      path: modules/lib/connectedhomeip
+      revision: a008cba6c6671f0db8858c3c51cc619a43ddecdc
+      submodules:
+        - name: nlio
+          path: third_party/nlio/repo
+        - name: nlassert
+          path: third_party/nlassert/repo
+        - name: pigweed
+          path: third_party/pigweed/repo
+    - name: nrf-802154
+      repo-path: sdk-nrf-802154
+      path: nrf-802154
+      revision: b8ad3b317626d1500f281276de40f9c6870fd5a4
+      groups:
+      - nrf-802154
     # Other third-party repositories.
     - name: cmock
       path: test/cmock
-      revision: c243b9a7a7b3c471023193992b46cf1bd1910450
+      revision: 9d092898ef26ece140d9225e037274b64d4f851e
       remote: throwtheswitch
     - name: unity
       path: test/cmock/vendor/unity
-      revision: 031f3bbe45f8adf504ca3d13e6f093869920b091
+      revision: 74cde089e65c3435ce9aa87d5c69f4f16b7f6ade
       remote: throwtheswitch
     - name: mbedtls-nrf
       path: mbedtls
       repo-path: mbedtls
-      revision: mbedtls-2.16.6
+      revision: mbedtls-2.24.0
       remote: armmbed
+    - name: nanopb
+      path: modules/lib/nanopb
+      revision: nanopb-0.4.2
+      remote: nanopb
+    - name: Alexa-Gadgets-Embedded-Sample-Code
+      path: modules/alexa-embedded
+      revision: face92d8c62184832793f518bb1f19379538c5c1
+      remote: alexa
+    - name: mbed-cloud-client-zephyr
+      path: modules/lib/pelion-dm
+      revision: 3f00170a0eda5a54ce0762fc7d3d83dc95610102
+      remote: pelioniot
+    - name: cddl-gen
+      remote: nordicsemi
+      revision: 24f1b2b0c64c694b7f9ac1b7eab60b39236ca0bf
+      path: modules/lib/cddl-gen
+    - name: homekit
+      repo-path: sdk-homekit
+      revision: 6f257f34b84e494bc18202e8c6411e6be4cc81aa
+      groups:
+      - homekit
 
   # West-related configuration for the nrf repository.
   self:

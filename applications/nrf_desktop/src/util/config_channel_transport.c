@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
@@ -19,10 +19,10 @@ LOG_MODULE_REGISTER(MODULE, CONFIG_DESKTOP_CONFIG_CHANNEL_LOG_LEVEL);
 
 static int frame_length_check(size_t length)
 {
+	BUILD_ASSERT(TRANSPORT_HEADER_SIZE < REPORT_SIZE_USER_CONFIG);
+
 	const size_t min_size = TRANSPORT_HEADER_SIZE;
 	const size_t max_size = REPORT_SIZE_USER_CONFIG;
-
-	BUILD_ASSERT(min_size < max_size);
 
 	if ((length < min_size) || (length > max_size)) {
 		LOG_WRN("Unsupported report length %zu", length);
@@ -34,10 +34,10 @@ static int frame_length_check(size_t length)
 
 static int data_len_check(size_t event_data_len)
 {
+	BUILD_ASSERT(TRANSPORT_HEADER_SIZE < REPORT_SIZE_USER_CONFIG);
+
 	const size_t min_size = TRANSPORT_HEADER_SIZE;
 	const size_t max_size = REPORT_SIZE_USER_CONFIG;
-
-	BUILD_ASSERT(min_size < max_size);
 
 	if (event_data_len > max_size - min_size) {
 		LOG_WRN("Unsupported event data length %" PRIu8,
@@ -91,7 +91,11 @@ int config_channel_report_parse(const uint8_t *buffer, size_t length,
 		return -EMSGSIZE;
 	}
 
-	__ASSERT_NO_MSG(event->dyndata.size >= config_data_len);
+	if (event->dyndata.size < config_data_len) {
+		LOG_ERR("Invalid packet size %zu < %zu", event->dyndata.size,
+			config_data_len);
+		return -ENOMEM;
+	}
 	event->dyndata.size = config_data_len;
 
 	memcpy(event->dyndata.data, &buffer[pos], config_data_len);
@@ -246,7 +250,7 @@ bool config_channel_transport_rsp_receive(struct config_channel_transport *trans
 
 	if (event->is_request) {
 		/* Mark request as unhandled. */
-		event->status = CONFIG_STATUS_DISCONNECTED_ERROR;
+		event->status = CONFIG_STATUS_DISCONNECTED;
 		event->dyndata.size = 0;
 	}
 

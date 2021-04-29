@@ -1,13 +1,13 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <string.h>
 #include <zephyr.h>
 #include <stdlib.h>
-#include <modem/bsdlib.h>
+#include <modem/nrf_modem_lib.h>
 #include <modem/lte_lc.h>
 #include <modem/at_cmd.h>
 #include <modem/at_notif.h>
@@ -18,6 +18,7 @@
 #define SEC_TAG CONFIG_SAMPLE_SEC_TAG
 
 #define PROGRESS_WIDTH 50
+#define STARTING_OFFSET 0
 
 #if CONFIG_SAMPLE_SECURE_SOCKET
 static const char cert[] = {
@@ -34,6 +35,11 @@ static struct download_client_cfg config = {
 	.sec_tag = -1,
 #endif
 };
+
+#if CONFIG_SAMPLE_COMPUTE_HASH
+#include <mbedtls/sha256.h>
+static mbedtls_sha256_context sha256_ctx;
+#endif
 
 static int64_t ref_time;
 
@@ -125,6 +131,7 @@ static int callback(const struct download_client_evt *event)
 
 	if (downloaded == 0) {
 		download_client_file_size_get(&downloader, &file_size);
+		downloaded += STARTING_OFFSET;
 	}
 
 	switch (event->id) {
@@ -135,14 +142,38 @@ static int callback(const struct download_client_evt *event)
 		} else {
 			printk("\r[ %d bytes ] ", downloaded);
 		}
+
+#if CONFIG_SAMPLE_COMPUTE_HASH
+		mbedtls_sha256_update_ret(&sha256_ctx,
+			event->fragment.buf, event->fragment.len);
+#endif
 		return 0;
 
 	case DOWNLOAD_CLIENT_EVT_DONE:
 		ms_elapsed = k_uptime_delta(&ref_time);
 		speed = ((float)file_size / ms_elapsed) * MSEC_PER_SEC;
-
 		printk("\nDownload completed in %lld ms @ %d bytes per sec, total %d bytes\n",
 		       ms_elapsed, speed, downloaded);
+
+#if CONFIG_SAMPLE_COMPUTE_HASH
+		uint8_t hash[32];
+		uint8_t hash_str[64 + 1];
+
+		mbedtls_sha256_finish_ret(&sha256_ctx, hash);
+		mbedtls_sha256_free(&sha256_ctx);
+
+		bin2hex(hash, sizeof(hash), hash_str, sizeof(hash_str));
+
+		printk("SHA256: %s\n", hash_str);
+
+#if CONFIG_SAMPLE_COMPARE_HASH
+		if (strcmp(hash_str, CONFIG_SAMPLE_SHA256_HASH)) {
+			printk("Expect: %s\n", CONFIG_SAMPLE_SHA256_HASH);
+			printk("SHA256 mismatch!\n");
+		}
+#endif /* CONFIG_SAMPLE_COMPARE_HASH */
+#endif /* CONFIG_SAMPLE_COMPUTE_HASH */
+
 		printk("Bye\n");
 		downloaded = 0;
 		return 0;
@@ -163,9 +194,9 @@ void main(void)
 
 	printk("Download client sample started\n");
 
-	err = bsdlib_init();
+	err = nrf_modem_lib_init(NORMAL_MODE);
 	if (err) {
-		printk("Failed to initialize bsdlib!");
+		printk("Failed to initialize modem library!");
 		return;
 	}
 
@@ -198,6 +229,11 @@ void main(void)
 		return;
 	}
 
+#if CONFIG_SAMPLE_COMPUTE_HASH
+	mbedtls_sha256_init(&sha256_ctx);
+	mbedtls_sha256_starts_ret(&sha256_ctx, false);
+#endif
+
 	err = download_client_connect(&downloader, URL, &config);
 	if (err) {
 		printk("Failed to connect, err %d", err);
@@ -206,7 +242,7 @@ void main(void)
 
 	ref_time = k_uptime_get();
 
-	err = download_client_start(&downloader, URL, 0);
+	err = download_client_start(&downloader, URL, STARTING_OFFSET);
 	if (err) {
 		printk("Failed to start the downloader, err %d", err);
 		return;

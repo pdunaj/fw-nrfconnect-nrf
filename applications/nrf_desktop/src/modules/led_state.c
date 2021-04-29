@@ -1,16 +1,16 @@
 /*
  * Copyright (c) 2018 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
 
 #define MODULE led_state
-#include "module_state_event.h"
+#include <caf/events/module_state_event.h>
 
-#include "led_event.h"
-#include "ble_event.h"
+#include <caf/events/led_event.h>
+#include <caf/events/ble_common_event.h>
 #include "battery_event.h"
 
 #include <logging/log.h>
@@ -102,7 +102,6 @@ static bool event_handler(const struct event_header *eh)
 		struct ble_peer_event *event = cast_ble_peer_event(eh);
 
 		switch (event->state)  {
-		case PEER_STATE_SECURED:
 		case PEER_STATE_CONNECTED:
 			__ASSERT_NO_MSG(connected < UINT8_MAX);
 			connected++;
@@ -111,6 +110,7 @@ static bool event_handler(const struct event_header *eh)
 			__ASSERT_NO_MSG(connected > 0);
 			connected--;
 			break;
+		case PEER_STATE_SECURED:
 		case PEER_STATE_CONN_FAILED:
 		case PEER_STATE_DISCONNECTING:
 			/* Ignore */

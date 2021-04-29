@@ -3,13 +3,13 @@
 OpenThread architectures
 ########################
 
+.. contents::
+   :local:
+   :depth: 2
+
 This page describes the OpenThread stack architecture and platform designs that are possible with the OpenThread network stack on Nordic Semiconductor devices in |NCS|.
 
 The designs are described from the least to the most complex, that is from simple applications that consist of a single chip running single or multiple protocols to scenarios in which the nRF SoC acts as a network co-processor when the application is running on a much more powerful host processor.
-
-.. contents::
-    :local:
-    :depth: 1
 
 .. _openthread_stack_architecture:
 
@@ -41,7 +41,7 @@ Single-chip, single protocol (SoC)
 In this design, the application layer and OpenThread run on the same processor.
 The application uses the OpenThread APIs and IPv6 stack directly.
 
-This is the SoC design most commonly used for applications that do not make heavy computations or are battery powered.
+This is the SoC design most commonly used for applications that do not make heavy computations or are battery-powered.
 
 This design has the following advantages:
 
@@ -51,14 +51,19 @@ This design has the following advantages:
 
 It also has the following disadvantages:
 
-* For some uses, the nRF528xx MCU can be too slow. For example, when the application would like to do complex data processing.
+* For some use cases, the nRF52 Series and nRF53 Series MCUs can be too slow (for example, when the application does complex data processing).
 * The application and the network share Flash and RAM space, which can limit the application functionality.
 * Dual-bank DFU or an external flash is needed to update the firmware.
 
 .. figure:: /images/thread_platform_design_soc.svg
-   :alt: Thread-only architecture
+   :alt: Thread-only architecture (nRF52)
 
-   Thread-only architecture
+   Thread-only architecture on nRF52 Series devices
+
+.. figure:: /images/thread_platform_design_nRF53.svg
+   :alt: Thread-only architecture (nRF53)
+
+   Thread-only architecture on nRF53 Series devices
 
 This platform design is suitable for the following development kits:
 
@@ -67,37 +72,44 @@ This platform design is suitable for the following development kits:
 +================================+===========+================================================+===============================+
 |:ref:`nRF52840 DK <ug_nrf52>`   |PCA10056   |:ref:`nrf52840dk_nrf52840 <nrf52840dk_nrf52840>`|``nrf52840dk_nrf52840``        |
 +--------------------------------+-----------+------------------------------------------------+-------------------------------+
-|:ref:`nRF52833 DK <ug_nrf52>`   |PCA10010   |:ref:`nrf52833dk_nrf52833 <nrf52833dk_nrf52833>`|``nrf52833dk_nrf52833``        |
+|:ref:`nRF52833 DK <ug_nrf52>`   |PCA10100   |:ref:`nrf52833dk_nrf52833 <nrf52833dk_nrf52833>`|``nrf52833dk_nrf52833``        |
 +--------------------------------+-----------+------------------------------------------------+-------------------------------+
-|:ref:`nRF5340 PDK <ug_nrf5340>` |PCA10095   |:ref:`nrf5340pdk_nrf5340 <nrf5340pdk_nrf5340>`  |``nrf5340pdk_nrf5340_cpuapp``  |
-|                                |           |                                                |``nrf5340pdk_nrf5340_cpuappns``|
+|:ref:`nRF5340 DK <ug_nrf5340>`  |PCA10095   |:ref:`nrf5340dk_nrf5340 <nrf5340dk_nrf5340>`    |``nrf5340dk_nrf5340_cpuapp``   |
+|                                |           |                                                |                               |
+|                                |           |                                                |``nrf5340dk_nrf5340_cpuappns`` |
 +--------------------------------+-----------+------------------------------------------------+-------------------------------+
-
-.. note::
-    |5340_not_supported|
+|nRF21540 DK                     |PCA10112   |:ref:`nrf21540dk_nrf52840 <nrf21540dk_nrf52840>`|``nrf21540dk_nrf52840``        |
++--------------------------------+-----------+------------------------------------------------+-------------------------------+
 
 .. _thread_architectures_designs_soc_designs_multiprotocol:
 
 Single-chip, multiprotocol (SoC)
 ================================
 
-With nRF52840 and nRF52833 supporting multiple wireless technologies, including IEEE 802.15.4 and Bluetooth Low Energy (|BLE|), the application layer and OpenThread still run on the same processor.
+With nRF52 and nRF53 Series devices supporting multiple wireless technologies, including IEEE 802.15.4 and Bluetooth Low Energy (Bluetooth LE), the application layer and OpenThread still run on the same processor.
 
-In this multiprotocol design, the SoC ensures either dynamic or switched Thread and |BLE| connectivity.
+In this multiprotocol design, the SoC ensures either dynamic or switched Thread and Bluetooth LE connectivity.
 
 This design has the following advantages:
 
 * It leverages the benefits of highly integrated SoC, resulting in the lowest cost and the lowest power consumption.
-* It allows to run Thread and |BLE| simultaneously on a single chip, which reduces the overall BOM cost.
+* It allows to run Thread and Bluetooth LE simultaneously on a single chip, which reduces the overall BOM cost.
 
 It also has the following disadvantages:
 
-* |BLE| activity can degrade the connectivity on Thread if not implemented with efficiency in mind.
+* Bluetooth LE activity can degrade the connectivity on Thread if not implemented with efficiency in mind.
 
 .. figure:: /images/thread_platform_design_multi.svg
-   :alt: Multiprotocol Thread and |BLE| architecture
+   :alt: Multiprotocol Thread and Bluetooth LE architecture (nRF52)
 
-   Multiprotocol Thread and |BLE| architecture
+   Multiprotocol Thread and Bluetooth LE architecture on nRF52 Series devices
+
+.. figure:: /images/thread_platform_design_nRF53_multi.svg
+   :alt: Multiprotocol Thread and Bluetooth LE architecture (nRF53)
+
+   Multiprotocol Thread and Bluetooth LE architecture on nRF53 Series devices
+
+For more information about the multiprotocol feature, see :ref:`ug_multiprotocol_support`.
 
 This platform design is suitable for the following development kits:
 
@@ -106,15 +118,12 @@ This platform design is suitable for the following development kits:
 +================================+===========+================================================+===============================+
 |:ref:`nRF52840 DK <ug_nrf52>`   |PCA10056   |:ref:`nrf52840dk_nrf52840 <nrf52840dk_nrf52840>`|``nrf52840dk_nrf52840``        |
 +--------------------------------+-----------+------------------------------------------------+-------------------------------+
-|:ref:`nRF52833 DK <ug_nrf52>`   |PCA10010   |:ref:`nrf52833dk_nrf52833 <nrf52833dk_nrf52833>`|``nrf52833dk_nrf52833``        |
+|:ref:`nRF52833 DK <ug_nrf52>`   |PCA10100   |:ref:`nrf52833dk_nrf52833 <nrf52833dk_nrf52833>`|``nrf52833dk_nrf52833``        |
 +--------------------------------+-----------+------------------------------------------------+-------------------------------+
-|:ref:`nRF5340 PDK <ug_nrf5340>` |PCA10095   |:ref:`nrf5340pdk_nrf5340 <nrf5340pdk_nrf5340>`  |``nrf5340pdk_nrf5340_cpuapp``  |
+|:ref:`nRF5340 DK <ug_nrf5340>`  |PCA10095   |:ref:`nrf5340dk_nrf5340 <nrf5340dk_nrf5340>`    |``nrf5340dk_nrf5340_cpuapp``   |
 |                                |           |                                                |                               |
-|                                |           |                                                |``nrf5340pdk_nrf5340_cpuappns``|
+|                                |           |                                                |``nrf5340dk_nrf5340_cpuappns`` |
 +--------------------------------+-----------+------------------------------------------------+-------------------------------+
-
-.. note::
-    |5340_not_supported|
 
 .. _thread_architectures_designs_cp:
 
@@ -123,10 +132,6 @@ Co-processor designs
 
 In the co-processor designs, with either network co-processor (NCP) or radio co-processor (RCP), the application layer runs on a host processor and communicates with OpenThread through a serial connection using a standardized host-controller protocol (Spinel).
 OpenThread can run on either the radio or the host processor.
-
-.. contents::
-    :local:
-    :depth: 1
 
 .. _thread_architectures_designs_cp_ncp:
 
@@ -165,22 +170,17 @@ This platform design is suitable for the following development kits:
 +================================+===========+================================================+===============================+
 |:ref:`nRF52840 DK <ug_nrf52>`   |PCA10056   |:ref:`nrf52840dk_nrf52840 <nrf52840dk_nrf52840>`|``nrf52840dk_nrf52840``        |
 +--------------------------------+-----------+------------------------------------------------+-------------------------------+
-|:ref:`nRF52833 DK <ug_nrf52>`   |PCA10010   |:ref:`nrf52833dk_nrf52833 <nrf52833dk_nrf52833>`|``nrf52833dk_nrf52833``        |
+|:ref:`nRF52833 DK <ug_nrf52>`   |PCA10100   |:ref:`nrf52833dk_nrf52833 <nrf52833dk_nrf52833>`|``nrf52833dk_nrf52833``        |
 +--------------------------------+-----------+------------------------------------------------+-------------------------------+
-|:ref:`nRF5340 PDK <ug_nrf5340>` |PCA10095   |:ref:`nrf5340pdk_nrf5340 <nrf5340pdk_nrf5340>`  |``nrf5340pdk_nrf5340_cpuapp``  |
-|                                |           |                                                |                               |
-|                                |           |                                                |``nrf5340pdk_nrf5340_cpuappns``|
+|nRF21540 DK                     |PCA10112   |:ref:`nrf21540dk_nrf52840 <nrf21540dk_nrf52840>`|``nrf21540dk_nrf52840``        |
 +--------------------------------+-----------+------------------------------------------------+-------------------------------+
-
-.. note::
-    |5340_not_supported|
 
 .. _thread_architectures_designs_cp_rcp:
 
 Radio Co-Processor (RCP)
 ========================
 
-.. warning::
+.. note::
     The RCP architecture is currently not supported in |NCS|.
 
 This is a variant of the NCP design where the core of OpenThread lives on the host processor with only a minimal "controller" on the device with the Thread radio.
@@ -387,5 +387,9 @@ However, when using NCP with Zephyr, there is still a possibility that NCP will 
 This happens when some critical errors occur in Zephyr and the system wants to provide as much information about the failure as possible without using interrupts.
 This exception applies mainly to log messages and is done by turning off UART interrupts and flushing everything from the TX buffer without encoding it.
 
+----
+
+|Google_CCLicense|
+The source page is available `here <OpenThread system architecture_>`_.
+
 .. |connection_options_limited| replace:: Spinel connections through SPI and USB are not currently available.
-.. |5340_not_supported| replace:: :ref:`nRF5340 PDK <ug_nrf5340>` is not yet supported by Thread in |NCS|.

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <drivers/counter.h>
@@ -12,10 +12,10 @@
 #include <zb_types.h>
 
 #define ALARM_CHANNEL_ID  0
-#define TIMER_INSTANCE    DT_LABEL(DT_NODELABEL(timer3))
+#define TIMER_INSTANCE    DT_LABEL(DT_NODELABEL(timer2))
 
 typedef struct {
-	struct device *device;
+	const struct device *device;
 	struct counter_alarm_cfg alarm_cfg;
 	uint8_t alarm_ch_id;
 	volatile zb_bool_t is_init;
@@ -31,7 +31,8 @@ static zb_timer_t zb_timer = {
 void zb_osif_zboss_timer_tick(void);
 
 /* Timer interrupt handler. */
-static void zb_timer_alarm_handler(struct device *counter_dev, uint8_t chan_id,
+static void zb_timer_alarm_handler(const struct device *counter_dev,
+				   uint8_t chan_id,
 				   uint32_t ticks, void *user_data)
 {
 	switch (chan_id) {

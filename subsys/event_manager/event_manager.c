@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2018 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <stdio.h>
@@ -12,6 +12,12 @@
 #include <logging/log.h>
 
 LOG_MODULE_REGISTER(event_manager, CONFIG_DESKTOP_EVENT_MANAGER_LOG_LEVEL);
+
+
+/* Event manager uses orphan sections. Below tag will allow linker to
+ * find a section usable to put the orphan sections next to.
+ */
+const struct {} linker_tag __attribute__((__section__("event_manager"))) __used;
 
 
 static void event_processor_fn(struct k_work *work);
@@ -63,8 +69,13 @@ static void log_event(const struct event_header *eh)
 			log_buf[sizeof(log_buf) - 2] = '~';
 		}
 
-		LOG_INF("e: %s %s", et->name, log_strdup(log_buf));
-	} else {
+		if (IS_ENABLED(CONFIG_DESKTOP_EVENT_MANAGER_LOG_EVENT_TYPE)) {
+			LOG_INF("e: %s %s", et->name, log_strdup(log_buf));
+		} else {
+			LOG_INF("%s", log_strdup(log_buf));
+		}
+
+	} else if (IS_ENABLED(CONFIG_DESKTOP_EVENT_MANAGER_LOG_EVENT_TYPE)) {
 		LOG_INF("e: %s", et->name);
 	}
 }

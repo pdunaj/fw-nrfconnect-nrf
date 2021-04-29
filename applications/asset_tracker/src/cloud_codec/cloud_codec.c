@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <stdbool.h>
@@ -12,9 +12,10 @@
 #include <zephyr.h>
 #include <zephyr/types.h>
 #include <net/cloud.h>
-#if defined(CONFIG_BSD_LIBRARY)
+#if defined(CONFIG_NRF_MODEM_LIB)
 #include <modem/modem_info.h>
-#endif /* CONFIG_BSD_LIBRARY */
+#endif /* CONFIG_NRF_MODEM_LIB */
+#include <date_time.h>
 
 #include "cJSON.h"
 #include "cJSON_os.h"
@@ -29,6 +30,8 @@ LOG_MODULE_REGISTER(cloud_codec, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 #define CMD_GROUP_KEY_STR "messageType"
 #define CMD_CHAN_KEY_STR "appId"
 #define CMD_DATA_TYPE_KEY_STR "data"
+
+#define DATA_TS "ts"
 
 #define DISABLE_SEND_INTERVAL_VAL 0
 #define MIN_INTERVAL_VAL_SECONDS 5
@@ -292,6 +295,18 @@ static int json_add_str(cJSON *parent, const char *str, const char *item)
 	return json_add_obj(parent, str, json_str);
 }
 
+static int json_add_number(cJSON *parent, const char *str, double item)
+{
+	cJSON *json_num;
+
+	json_num = cJSON_CreateNumber(item);
+	if (json_num == NULL) {
+		return -ENOMEM;
+	}
+
+	return json_add_obj(parent, str, json_num);
+}
+
 static int json_add_bool(cJSON *parent, const char *str, const bool value)
 {
 	cJSON *json_bool;
@@ -325,6 +340,7 @@ int cloud_encode_data(const struct cloud_channel_data *channel,
 		      struct cloud_msg *output)
 {
 	int ret;
+	int64_t data_ts = channel->ts;
 
 	if (channel == NULL || channel->data.buf == NULL ||
 	    channel->data.len == 0 || output == NULL ||
@@ -338,10 +354,21 @@ int cloud_encode_data(const struct cloud_channel_data *channel,
 		return -ENOMEM;
 	}
 
+	/** Convert sample uptime to unix time ms. If this function fails the
+	 *  uptime is cleared and an empty timestamp value is encoded.
+	 */
+	ret = date_time_uptime_to_unix_time_ms(&data_ts);
+	if (ret) {
+		LOG_WRN("date_time_uptime_to_unix_time_ms, error: %d", ret);
+		LOG_WRN("Clearing timestamp");
+		date_time_timestamp_clear(&data_ts);
+	}
+
 	ret = json_add_str(root_obj, CMD_CHAN_KEY_STR,
 			   channel_type_str[channel->type]);
 	ret += json_add_str(root_obj, CMD_DATA_TYPE_KEY_STR, channel->data.buf);
 	ret += json_add_str(root_obj, CMD_GROUP_KEY_STR, cmd_group_str[group]);
+	ret += json_add_number(root_obj, DATA_TS, data_ts);
 	if (ret != 0) {
 		cJSON_Delete(root_obj);
 		return -ENOMEM;
@@ -366,7 +393,7 @@ int cloud_encode_env_sensors_data(const env_sensor_data_t *sensor_data,
 
 	char buf[6];
 	uint8_t len;
-	struct cloud_channel_data cloud_sensor = { 0 };
+	struct cloud_channel_data cloud_sensor = { .ts = sensor_data->ts };
 
 	switch (sensor_data->type) {
 	case ENV_SENSOR_TEMPERATURE:
@@ -403,7 +430,10 @@ int cloud_encode_motion_data(const motion_data_t *motion_data,
 	__ASSERT_NO_MSG(motion_data != NULL);
 	__ASSERT_NO_MSG(output != NULL);
 
-	struct cloud_channel_data cloud_sensor = { .type = CLOUD_CHANNEL_FLIP };
+	struct cloud_channel_data cloud_sensor = {
+		.type = CLOUD_CHANNEL_FLIP,
+		.ts = motion_data->ts
+	};
 
 	switch (motion_data->orientation) {
 	case MOTION_ORIENTATION_NORMAL:
@@ -432,7 +462,8 @@ int cloud_encode_light_sensor_data(const struct light_sensor_data *sensor_data,
 	char buf[LIGHT_SENSOR_DATA_STRING_MAX_LEN];
 	uint8_t len;
 	struct cloud_channel_data cloud_sensor = {
-					  .type = CLOUD_CHANNEL_LIGHT_SENSOR
+					  .type = CLOUD_CHANNEL_LIGHT_SENSOR,
+					  .ts = sensor_data->ts
 					  };
 
 	struct light_sensor_data send = { .red = LIGHT_SENSOR_DATA_NO_UPDATE,
@@ -859,6 +890,7 @@ static int cloud_search_config(cJSON * const root_obj)
 	struct cmd const *const group = &group_cfg_set;
 	cJSON *state_obj = NULL;
 	cJSON *config_obj = NULL;
+	bool found = false;
 
 	if (root_obj == NULL) {
 		return -EINVAL;
@@ -870,7 +902,7 @@ static int cloud_search_config(cJSON * const root_obj)
 		state_obj ? state_obj : root_obj, "config");
 
 	if (config_obj == NULL) {
-		return 0;
+		return -ENOTSUP;
 	}
 
 	/* Search all channels */
@@ -911,6 +943,8 @@ static int cloud_search_config(cJSON * const root_obj)
 				log_strdup(channel_type_str[found_config_item.channel]),
 				log_strdup(cmd_type_str[found_config_item.type]));
 
+			found = true;
+
 			/* Handle cfg commands */
 			(void)cloud_cmd_handle_sensor_set_chan_cfg(
 				&found_config_item);
@@ -924,11 +958,12 @@ static int cloud_search_config(cJSON * const root_obj)
 	/* Config was detached, must be deleted */
 	cJSON_Delete(config_obj);
 
-	return 0;
+	return found ? 0 : -ENOTSUP;
 }
 
 int cloud_decode_command(char const *input)
 {
+	int ret = 0;
 	cJSON *root_obj = NULL;
 
 	if (input == NULL) {
@@ -938,16 +973,17 @@ int cloud_decode_command(char const *input)
 	root_obj = cJSON_Parse(input);
 	if (root_obj == NULL) {
 		LOG_DBG("[%s:%d] Unable to parse input", __func__, __LINE__);
-		return -ENOENT;
+		return 1;
 	}
 
-	cloud_search_cmd(root_obj);
-
-	cloud_search_config(root_obj);
+	if (cloud_search_cmd(root_obj) == -ENOTSUP &&
+	    cloud_search_config(root_obj) == -ENOTSUP) {
+		ret = 1;
+	}
 
 	cJSON_Delete(root_obj);
 
-	return 0;
+	return ret;
 }
 
 int cloud_decode_init(cloud_cmd_cb_t cb)

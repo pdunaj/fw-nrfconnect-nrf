@@ -3,17 +3,21 @@
 nRF9160: UDP
 ############
 
+.. contents::
+   :local:
+   :depth: 2
+
 The UDP sample demonstrates the sequential transmission of UDP packets to a predetermined server identified by an IP address and a port.
-The sample uses the :ref:`nrfxlib:bsdlib` and :ref:`lte_lc_readme` library.
+The sample uses the :ref:`nrfxlib:nrf_modem` and :ref:`lte_lc_readme` library.
 
 Requirements
 ************
 
 The sample supports the following development kits:
 
-.. include:: /includes/boardname_tables/sample_boardnames.txt
-   :start-after: set6_start
-   :end-before: set6_end
+.. table-from-rows:: /includes/sample_board_rows.txt
+   :header: heading
+   :rows: thingy91_nrf9160ns, nrf9160dk_nrf9160ns
 
 Additionally, it supports :ref:`qemu_x86`.
 
@@ -177,10 +181,13 @@ The following serial UART output is displayed in the terminal emulator:
 Dependencies
 ************
 
-This sample uses the following |NCS| libraries:
+This sample uses the following |NCS| library:
 
-* ``lib/bsd_lib``
-* ``lib/lte_link_control``
+* :ref:`lte_lc_readme`
+
+It uses the following `sdk-nrfxlib`_ library:
+
+* :ref:`nrfxlib:nrf_modem`
 
 In addition, it uses the following sample:
 

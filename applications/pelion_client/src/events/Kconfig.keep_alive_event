@@ -1,0 +1,18 @@
+#
+# Copyright (c) 2021 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+config PELION_CLIENT_KEEP_ALIVE_EVENT_ENABLE
+	bool "Keep alive event"
+	help
+	  Enable keep alive event.
+
+if PELION_CLIENT_KEEP_ALIVE_EVENT_ENABLE
+
+config PELION_CLIENT_INIT_LOG_KEEP_ALIVE_EVENT
+	bool "Log power manager keep alive event"
+	help
+	  Log the keep alive event.
+endif

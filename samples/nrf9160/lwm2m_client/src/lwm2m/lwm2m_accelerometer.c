@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
@@ -54,7 +54,7 @@ struct orientation_detector_sensor_data {
 	enum orientation_state orientation; /**< Current orientation. */
 };
 
-static struct device *accel_dev;
+static const struct device *accel_dev;
 static double accel_offset[3];
 static struct k_delayed_work flip_poll_work;
 static uint32_t timestamp;

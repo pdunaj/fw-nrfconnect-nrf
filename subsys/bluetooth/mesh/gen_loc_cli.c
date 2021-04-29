@@ -1,14 +1,14 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <bluetooth/mesh/gen_loc_cli.h>
 #include "model_utils.h"
 #include "gen_loc_internal.h"
 
-static void handle_global_loc(struct bt_mesh_model *mod,
+static void handle_global_loc(struct bt_mesh_model *model,
 			      struct bt_mesh_msg_ctx *ctx,
 			      struct net_buf_simple *buf)
 {
@@ -16,7 +16,7 @@ static void handle_global_loc(struct bt_mesh_model *mod,
 		return;
 	}
 
-	struct bt_mesh_loc_cli *cli = mod->user_data;
+	struct bt_mesh_loc_cli *cli = model->user_data;
 	struct bt_mesh_loc_global loc;
 
 	bt_mesh_loc_global_decode(buf, &loc);
@@ -34,7 +34,7 @@ static void handle_global_loc(struct bt_mesh_model *mod,
 	}
 }
 
-static void handle_local_loc(struct bt_mesh_model *mod,
+static void handle_local_loc(struct bt_mesh_model *model,
 			     struct bt_mesh_msg_ctx *ctx,
 			     struct net_buf_simple *buf)
 {
@@ -42,7 +42,7 @@ static void handle_local_loc(struct bt_mesh_model *mod,
 		return;
 	}
 
-	struct bt_mesh_loc_cli *cli = mod->user_data;
+	struct bt_mesh_loc_cli *cli = model->user_data;
 	struct bt_mesh_loc_local loc;
 
 	bt_mesh_loc_local_decode(buf, &loc);
@@ -61,26 +61,43 @@ static void handle_local_loc(struct bt_mesh_model *mod,
 }
 
 const struct bt_mesh_model_op _bt_mesh_loc_cli_op[] = {
-	{ BT_MESH_LOC_OP_GLOBAL_STATUS, BT_MESH_LOC_MSG_LEN_GLOBAL_STATUS,
-	  handle_global_loc },
-	{ BT_MESH_LOC_OP_LOCAL_STATUS, BT_MESH_LOC_MSG_LEN_LOCAL_STATUS,
-	  handle_local_loc },
+	{
+		BT_MESH_LOC_OP_GLOBAL_STATUS,
+		BT_MESH_LOC_MSG_LEN_GLOBAL_STATUS,
+		handle_global_loc,
+	},
+	{
+		BT_MESH_LOC_OP_LOCAL_STATUS,
+		BT_MESH_LOC_MSG_LEN_LOCAL_STATUS,
+		handle_local_loc,
+	},
 	BT_MESH_MODEL_OP_END,
 };
 
-static int bt_mesh_loc_init(struct bt_mesh_model *mod)
+static int bt_mesh_loc_init(struct bt_mesh_model *model)
 {
-	struct bt_mesh_loc_cli *cli = mod->user_data;
+	struct bt_mesh_loc_cli *cli = model->user_data;
 
-	cli->model = mod;
-	net_buf_simple_init(mod->pub->msg, 0);
+	cli->model = model;
+	cli->pub.msg = &cli->pub_buf;
+	net_buf_simple_init_with_data(&cli->pub_buf, cli->pub_data,
+				      sizeof(cli->pub_data));
 	model_ack_init(&cli->ack_ctx);
 
 	return 0;
 }
 
+static void bt_mesh_loc_reset(struct bt_mesh_model *model)
+{
+	struct bt_mesh_loc_cli *cli = model->user_data;
+
+	net_buf_simple_reset(model->pub->msg);
+	model_ack_reset(&cli->ack_ctx);
+}
+
 const struct bt_mesh_model_cb _bt_mesh_loc_cli_cb = {
 	.init = bt_mesh_loc_init,
+	.reset = bt_mesh_loc_reset,
 };
 
 int bt_mesh_loc_cli_global_get(struct bt_mesh_loc_cli *cli,

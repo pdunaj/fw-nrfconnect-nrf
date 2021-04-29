@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #ifndef LWM2M_OS_H__
@@ -20,7 +20,7 @@
 /**
  * @brief Maximum number of timers that the system must support.
  */
-#define LWM2M_OS_MAX_TIMER_COUNT 8
+#define LWM2M_OS_MAX_TIMER_COUNT 10
 
 #define LWM2M_LOG_LEVEL_NONE 0
 #define LWM2M_LOG_LEVEL_ERR 1
@@ -188,16 +188,25 @@ const char *lwm2m_os_log_strdup(const char *str);
 void lwm2m_os_log(int level, const char *fmt, ...);
 
 /**
- * @brief Initialize BSD library.
+ * @brief Print a data dump via logger.
+ *
+ * @param msg  Log message.
+ * @param data Data to dump.
+ * @param len  Data length.
+ */
+void lwm2m_os_logdump(const char *msg, const void *data, size_t len);
+
+/**
+ * @brief Initialize modem library.
  *
  * @return 0  on success
  * @return -1 on error
- * @return an error from @em bsd_modem_dfu in case of modem DFU
+ * @return an error from @em nrf_modem_dfu in case of modem DFU.
  */
 int lwm2m_os_bsdlib_init(void);
 
 /**
- * @brief Shutdown BSD library.
+ * @brief Shutdown the Modem library.
  *
  * @return 0 on success, -1 otherwise.
  */

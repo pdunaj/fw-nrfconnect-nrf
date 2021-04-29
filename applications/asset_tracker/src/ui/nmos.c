@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
@@ -36,8 +36,8 @@ struct nmos_config {
 	} mode;
 };
 
-static struct device *gpio_dev;
-static struct device *pwm_dev;
+static const struct device *gpio_dev;
+static const struct device *pwm_dev;
 
 static uint32_t current_period_us;
 
@@ -65,7 +65,7 @@ static int pwm_out(uint32_t pin, uint32_t period_us, uint32_t duty_cycle_us)
 	return pwm_pin_set_usec(pwm_dev, pin, period_us, duty_cycle_us, 0);
 }
 
-#ifdef CONFIG_DEVICE_POWER_MANAGEMENT
+#ifdef CONFIG_PM_DEVICE
 static bool pwm_is_in_use(void)
 {
 	for (size_t i = 0; i < ARRAY_SIZE(nmos_pins); i++) {
@@ -76,7 +76,7 @@ static bool pwm_is_in_use(void)
 
 	return false;
 }
-#endif /* CONFIG_DEVICE_POWER_MANAGEMENT */
+#endif /* CONFIG_PM_DEVICE */
 
 static void nmos_pwm_disable(uint32_t nmos_idx)
 {
@@ -84,7 +84,7 @@ static void nmos_pwm_disable(uint32_t nmos_idx)
 
 	nmos_pins[nmos_idx].mode = NMOS_MODE_GPIO;
 
-#ifdef CONFIG_DEVICE_POWER_MANAGEMENT
+#ifdef CONFIG_PM_DEVICE
 	if (pwm_is_in_use()) {
 		return;
 	}
@@ -95,7 +95,7 @@ static void nmos_pwm_disable(uint32_t nmos_idx)
 	if (err) {
 		LOG_WRN("PWM disable failed");
 	}
-#endif /* CONFIG_DEVICE_POWER_MANAGEMENT */
+#endif /* CONFIG_PM_DEVICE */
 }
 
 static int nmos_pwm_enable(size_t nmos_idx)
@@ -104,7 +104,7 @@ static int nmos_pwm_enable(size_t nmos_idx)
 
 	nmos_pins[nmos_idx].mode = NMOS_MODE_PWM;
 
-#ifdef CONFIG_DEVICE_POWER_MANAGEMENT
+#ifdef CONFIG_PM_DEVICE
 	uint32_t power_state;
 
 	device_get_power_state(pwm_dev, &power_state);
@@ -120,7 +120,7 @@ static int nmos_pwm_enable(size_t nmos_idx)
 		LOG_ERR("PWM enable failed");
 		return err;
 	}
-#endif /* CONFIG_DEVICE_POWER_MANAGEMENT */
+#endif /* CONFIG_PM_DEVICE */
 
 	return err;
 }

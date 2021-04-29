@@ -1,14 +1,14 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
 #include <debug/cpu_load.h>
 
 #define MODULE cpu_meas
-#include "module_state_event.h"
+#include <caf/events/module_state_event.h>
 
 #include "cpu_load_event.h"
 

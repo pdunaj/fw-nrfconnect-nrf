@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2018 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <drivers/gpio.h>
@@ -33,7 +33,7 @@ enum gps_sim_state {
 };
 
 struct gps_sim_data {
-	struct device *dev;
+	const struct device *dev;
 	enum gps_sim_state state;
 	gps_event_handler_t handler;
 	struct gps_config cfg;
@@ -189,7 +189,7 @@ static void generate_gps_data(struct gps_nmea *gps_data,
 	LOG_DBG("%s (%d bytes)", log_strdup(gps_data->buf), gps_data->len);
 }
 
-static void notify_event(struct device *dev, struct gps_event *evt)
+static void notify_event(const struct device *dev, struct gps_event *evt)
 {
 	struct gps_sim_data *drv_data = dev->data;
 
@@ -300,7 +300,7 @@ static void fix_work_fn(struct k_work *work)
 	}
 }
 
-static int start(struct device *dev, struct gps_config *cfg)
+static int start(const struct device *dev, struct gps_config *cfg)
 {
 	struct gps_sim_data *drv_data = dev->data;
 
@@ -326,7 +326,7 @@ static int start(struct device *dev, struct gps_config *cfg)
 	return 0;
 }
 
-static int stop(struct device *dev)
+static int stop(const struct device *dev)
 {
 	struct gps_sim_data *drv_data = dev->data;
 
@@ -352,7 +352,7 @@ static int stop(struct device *dev)
 	return 0;
 }
 
-static int init(struct device *dev, gps_event_handler_t handler)
+static int init(const struct device *dev, gps_event_handler_t handler)
 {
 	struct gps_sim_data *drv_data = dev->data;
 
@@ -372,7 +372,7 @@ static int init(struct device *dev, gps_event_handler_t handler)
 	return 0;
 }
 
-static int gps_sim_setup(struct device *dev)
+static int gps_sim_setup(const struct device *dev)
 {
 	struct gps_sim_data *drv_data = dev->data;
 
@@ -386,6 +386,7 @@ static int gps_sim_setup(struct device *dev)
 	k_work_q_start(&drv_data->work_q, drv_data->work_q_stack,
 		       K_THREAD_STACK_SIZEOF(drv_data->work_q_stack),
 		       K_PRIO_PREEMPT(CONFIG_GPS_SIM_WORKQUEUE_PRIORITY));
+	k_thread_name_set(&drv_data->work_q.thread, "gpssimworkq");
 
 	return 0;
 }
@@ -404,6 +405,7 @@ static const struct gps_driver_api gps_sim_api_funcs = {
 #define GPS_INIT_PRIORITY 90
 #endif
 
-DEVICE_AND_API_INIT(gps_sim, CONFIG_GPS_SIM_DEV_NAME, gps_sim_setup,
-		    &gps_sim_data, NULL, POST_KERNEL, GPS_INIT_PRIORITY,
-		    &gps_sim_api_funcs);
+DEVICE_DEFINE(gps_sim, CONFIG_GPS_SIM_DEV_NAME,
+	      gps_sim_setup, device_pm_control_nop,
+	      &gps_sim_data, NULL, POST_KERNEL, GPS_INIT_PRIORITY,
+	      &gps_sim_api_funcs);

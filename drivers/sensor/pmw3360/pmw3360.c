@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
@@ -129,9 +129,9 @@ enum async_init_step {
 };
 
 struct pmw3360_data {
-	struct device                *cs_gpio_dev;
-	struct device                *irq_gpio_dev;
-	struct device                *spi_dev;
+	const struct device          *cs_gpio_dev;
+	const struct device          *irq_gpio_dev;
+	const struct device          *spi_dev;
 	struct gpio_callback         irq_gpio_cb;
 	struct k_spinlock            lock;
 	int16_t                        x;
@@ -177,8 +177,6 @@ static int (* const async_init_fn[ASYNC_INIT_STEP_COUNT])(struct pmw3360_data *d
 
 
 static struct pmw3360_data pmw3360_data;
-DEVICE_DECLARE(pmw3360);
-
 
 static int spi_cs_ctrl(struct pmw3360_data *dev_data, bool enable)
 {
@@ -677,7 +675,7 @@ static int pmw3360_async_init_fw_load_verify(struct pmw3360_data *dev_data)
 	return err;
 }
 
-static void irq_handler(struct device *gpiob, struct gpio_callback *cb,
+static void irq_handler(const struct device *gpiob, struct gpio_callback *cb,
 			uint32_t pins)
 {
 	int err;
@@ -711,7 +709,7 @@ static void trigger_handler(struct k_work *work)
 		.chan = SENSOR_CHAN_ALL,
 	};
 
-	handler(DEVICE_GET(pmw3360), &trig);
+	handler(DEVICE_DT_INST_GET(0), &trig);
 
 	key = k_spin_lock(&pmw3360_data.lock);
 	if (pmw3360_data.data_ready_handler) {
@@ -849,7 +847,7 @@ static int pmw3360_init_spi(struct pmw3360_data *dev_data)
 	return 0;
 }
 
-static int pmw3360_init(struct device *dev)
+static int pmw3360_init(const struct device *dev)
 {
 	struct pmw3360_data *dev_data = &pmw3360_data;
 	int err;
@@ -882,7 +880,7 @@ static int pmw3360_init(struct device *dev)
 	return err;
 }
 
-static int pmw3360_sample_fetch(struct device *dev, enum sensor_channel chan)
+static int pmw3360_sample_fetch(const struct device *dev, enum sensor_channel chan)
 {
 	struct pmw3360_data *dev_data = &pmw3360_data;
 	uint8_t data[PMW3360_BURST_SIZE];
@@ -918,7 +916,7 @@ static int pmw3360_sample_fetch(struct device *dev, enum sensor_channel chan)
 	return err;
 }
 
-static int pmw3360_channel_get(struct device *dev, enum sensor_channel chan,
+static int pmw3360_channel_get(const struct device *dev, enum sensor_channel chan,
 			       struct sensor_value *val)
 {
 	struct pmw3360_data *dev_data = &pmw3360_data;
@@ -948,7 +946,7 @@ static int pmw3360_channel_get(struct device *dev, enum sensor_channel chan,
 	return 0;
 }
 
-static int pmw3360_trigger_set(struct device *dev,
+static int pmw3360_trigger_set(const struct device *dev,
 			       const struct sensor_trigger *trig,
 			       sensor_trigger_handler_t handler)
 {
@@ -991,7 +989,7 @@ static int pmw3360_trigger_set(struct device *dev,
 	return err;
 }
 
-static int pmw3360_attr_set(struct device *dev, enum sensor_channel chan,
+static int pmw3360_attr_set(const struct device *dev, enum sensor_channel chan,
 			    enum sensor_attribute attr,
 			    const struct sensor_value *val)
 {
@@ -1074,6 +1072,6 @@ static const struct sensor_driver_api pmw3360_driver_api = {
 	.attr_set     = pmw3360_attr_set,
 };
 
-DEVICE_AND_API_INIT(pmw3360, DT_INST_LABEL(0), pmw3360_init,
-		    NULL, NULL, POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY,
-		    &pmw3360_driver_api);
+DEVICE_DT_INST_DEFINE(0, pmw3360_init, device_pm_control_nop,
+		      NULL, NULL, POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY,
+		      &pmw3360_driver_api);

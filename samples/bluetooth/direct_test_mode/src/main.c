@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
@@ -36,7 +36,7 @@
 void main(void)
 {
 	int err;
-	struct device *uart;
+	const struct device *uart;
 	bool is_msb_read = false;
 	uint8_t rx_byte;
 	uint16_t dtm_cmd;

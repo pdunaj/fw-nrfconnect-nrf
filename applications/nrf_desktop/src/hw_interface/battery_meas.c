@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2018 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr/types.h>
@@ -15,12 +15,12 @@
 #include <hal/nrf_saadc.h>
 
 #include "event_manager.h"
-#include "power_event.h"
+#include <caf/events/power_event.h>
 #include "battery_event.h"
 #include "battery_def.h"
 
 #define MODULE battery_meas
-#include "module_state_event.h"
+#include <caf/events/module_state_event.h>
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(MODULE, CONFIG_DESKTOP_BATTERY_MEAS_LOG_LEVEL);
@@ -51,7 +51,7 @@ LOG_MODULE_REGISTER(MODULE, CONFIG_DESKTOP_BATTERY_MEAS_LOG_LEVEL);
 				 * ADC_REF_INTERNAL_MV / ADC_MAX)
 #endif
 
-static struct device *adc_dev;
+static const struct device *adc_dev;
 static int16_t adc_buffer;
 static bool adc_async_read_pending;
 
@@ -62,7 +62,7 @@ static struct k_poll_event  async_evt =
 				 K_POLL_MODE_NOTIFY_ONLY,
 				 &async_sig);
 
-static struct device *gpio_dev;
+static const struct device *gpio_dev;
 
 static atomic_t active;
 static bool sampling;

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <bluetooth/conn.h>
@@ -13,7 +13,8 @@
 #endif /* CONFIG_BT_LL_SOFTDEVICE */
 
 #define MODULE ble_conn_params
-#include "module_state_event.h"
+#include <caf/events/module_state_event.h>
+#include <caf/events/ble_common_event.h>
 #include "ble_event.h"
 
 #include <logging/log.h>
@@ -21,13 +22,11 @@ LOG_MODULE_REGISTER(MODULE, CONFIG_DESKTOP_BLE_CONN_PARAMS_LOG_LEVEL);
 
 #define CONN_INTERVAL_LLPM_US		1000   /* 1 ms */
 #define CONN_INTERVAL_LLPM_REG		0x0d01 /* 1 ms */
-#if (CONFIG_DESKTOP_BLE_USE_LLPM && (CONFIG_BT_MAX_CONN > 2))
+#if (CONFIG_CAF_BLE_USE_LLPM && (CONFIG_BT_MAX_CONN > 2))
  #define CONN_INTERVAL_BLE_REG		0x0008 /* 10 ms */
 #else
  #define CONN_INTERVAL_BLE_REG		0x0006 /* 7.5 ms */
 #endif
-#define CONN_LATENCY_LOW		0
-#define CONN_LATENCY_DEFAULT		99
 #define CONN_SUPERVISION_TIMEOUT	400
 
 #define CONN_PARAMS_ERROR_TIMEOUT	K_MSEC(100)
@@ -59,10 +58,10 @@ static int set_conn_params(struct bt_conn *conn, uint16_t conn_latency,
 {
 	int err;
 
-#ifdef CONFIG_DESKTOP_BLE_USE_LLPM
+#ifdef CONFIG_CAF_BLE_USE_LLPM
 	if (peer_llpm_support) {
 		struct net_buf *buf;
-		sdc_hci_vs_cmd_conn_update_t *cmd_conn_update;
+		sdc_hci_cmd_vs_conn_update_t *cmd_conn_update;
 		uint16_t conn_handle;
 
 		err = bt_hci_get_conn_handle(conn, &conn_handle);
@@ -71,7 +70,7 @@ static int set_conn_params(struct bt_conn *conn, uint16_t conn_latency,
 			return err;
 		}
 
-		buf = bt_hci_cmd_create(SDC_HCI_VS_OPCODE_CMD_CONN_UPDATE,
+		buf = bt_hci_cmd_create(SDC_HCI_OPCODE_CMD_VS_CONN_UPDATE,
 					sizeof(*cmd_conn_update));
 		if (!buf) {
 			LOG_ERR("Could not allocate command buffer");
@@ -84,10 +83,10 @@ static int set_conn_params(struct bt_conn *conn, uint16_t conn_latency,
 		cmd_conn_update->conn_latency        = conn_latency;
 		cmd_conn_update->supervision_timeout = CONN_SUPERVISION_TIMEOUT;
 
-		err = bt_hci_cmd_send_sync(SDC_HCI_VS_OPCODE_CMD_CONN_UPDATE, buf,
+		err = bt_hci_cmd_send_sync(SDC_HCI_OPCODE_CMD_VS_CONN_UPDATE, buf,
 					   NULL);
 	} else
-#endif /* CONFIG_DESKTOP_BLE_USE_LLPM */
+#endif /* CONFIG_CAF_BLE_USE_LLPM */
 	{
 		struct bt_le_conn_param param = {
 			.interval_min = CONN_INTERVAL_BLE_REG,
@@ -132,7 +131,7 @@ static void update_peer_conn_params(const struct connected_peer *peer)
 	} else {
 		LOG_INF("Conn params for peer: %p set: %s, latency: %"PRIu16,
 		  peer->conn,
-		  (IS_ENABLED(CONFIG_DESKTOP_BLE_USE_LLPM) && peer->llpm_support) ?
+		  (IS_ENABLED(CONFIG_CAF_BLE_USE_LLPM) && peer->llpm_support) ?
 		  "LLPM" : "BLE", latency);
 	}
 }

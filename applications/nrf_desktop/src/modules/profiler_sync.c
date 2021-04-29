@@ -1,17 +1,17 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
 #include <drivers/gpio.h>
 #include <profiler.h>
 
-#include "gpio_pins.h"
+#include <caf/gpio_pins.h>
 
 #define MODULE profiler_sync
-#include "module_state_event.h"
+#include <caf/events/module_state_event.h>
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(MODULE, CONFIG_DESKTOP_PROFILER_SYNC_LOG_LEVEL);
@@ -22,7 +22,7 @@ LOG_MODULE_REGISTER(MODULE, CONFIG_DESKTOP_PROFILER_SYNC_LOG_LEVEL);
 
 #define SYNC_EVENT_NAME		"sync_event"
 
-static struct device *gpio_dev;
+static const struct device *gpio_dev;
 static struct gpio_callback gpio_cb;
 
 static struct k_delayed_work gen_sync_event;
@@ -44,7 +44,7 @@ static void register_sync_event(void)
 						     NULL, 0);
 }
 
-static void gen_sync_event_isr(struct device *gpio_dev,
+static void gen_sync_event_isr(const struct device *gpio_dev,
 			       struct gpio_callback *cb,
 			       uint32_t pins)
 {

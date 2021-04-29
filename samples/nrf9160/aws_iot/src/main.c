@@ -1,19 +1,19 @@
 /*
  * Copyright (c) 2020 Nordic Semiconductor ASA
  *
- * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr.h>
 #include <stdio.h>
 #include <stdlib.h>
-#if defined(CONFIG_BSD_LIB)
+#if defined(CONFIG_NRF_MODEM_LIB)
 #include <modem/lte_lc.h>
-#include <modem/bsdlib.h>
+#include <modem/nrf_modem_lib.h>
 #include <modem/at_cmd.h>
 #include <modem/at_notif.h>
 #include <modem/modem_info.h>
-#include <bsd.h>
+#include <nrf_modem.h>
 #endif
 #include <net/aws_iot.h>
 #include <power/reboot.h>
@@ -28,6 +28,7 @@ BUILD_ASSERT(!IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT),
 #define APP_TOPICS_COUNT CONFIG_AWS_IOT_APP_SUBSCRIPTION_LIST_COUNT
 
 static struct k_delayed_work shadow_update_work;
+static struct k_delayed_work connect_work;
 static struct k_delayed_work shadow_update_version_work;
 
 K_SEM_DEFINE(lte_connected, 0, 1);
@@ -76,7 +77,7 @@ static int shadow_update(bool version_number_include)
 		return err;
 	}
 
-#if defined(CONFIG_BSD_LIBRARY)
+#if defined(CONFIG_NRF_MODEM_LIB)
 	/* Request battery voltage data from the modem. */
 	err = modem_info_short_get(MODEM_INFO_BATTERY, &bat_voltage);
 	if (err != sizeof(bat_voltage)) {
@@ -135,13 +136,29 @@ static int shadow_update(bool version_number_include)
 		printk("aws_iot_send, error: %d\n", err);
 	}
 
-	k_free(message);
+	cJSON_FreeString(message);
 
 cleanup:
 
 	cJSON_Delete(root_obj);
 
 	return err;
+}
+
+static void connect_work_fn(struct k_work *work)
+{
+	int err;
+
+	err = aws_iot_connect(NULL);
+	if (err) {
+		printk("aws_iot_connect, error: %d\n", err);
+	}
+
+	printk("Next connection retry in %d seconds\n",
+	       CONFIG_CONNECTION_RETRY_TIMEOUT_SECONDS);
+
+	k_delayed_work_submit(&connect_work,
+			K_SECONDS(CONFIG_CONNECTION_RETRY_TIMEOUT_SECONDS));
 }
 
 static void shadow_update_work_fn(struct k_work *work)
@@ -170,6 +187,33 @@ static void shadow_update_version_work_fn(struct k_work *work)
 	}
 }
 
+static void print_received_data(const char *buf, const char *topic,
+				size_t topic_len)
+{
+	char *str = NULL;
+	cJSON *root_obj = NULL;
+
+	root_obj = cJSON_Parse(buf);
+	if (root_obj == NULL) {
+		printk("cJSON Parse failure");
+		return;
+	}
+
+	str = cJSON_Print(root_obj);
+	if (str == NULL) {
+		printk("Failed to print JSON object");
+		goto clean_exit;
+	}
+
+	printf("Data received from AWS IoT console:\nTopic: %.*s\nMessage: %s\n",
+	       topic_len, topic, str);
+
+	cJSON_FreeString(str);
+
+clean_exit:
+	cJSON_Delete(root_obj);
+}
+
 void aws_iot_event_handler(const struct aws_iot_evt *const evt)
 {
 	switch (evt->type) {
@@ -179,11 +223,13 @@ void aws_iot_event_handler(const struct aws_iot_evt *const evt)
 	case AWS_IOT_EVT_CONNECTED:
 		printk("AWS_IOT_EVT_CONNECTED\n");
 
+		k_delayed_work_cancel(&connect_work);
+
 		if (evt->data.persistent_session) {
 			printk("Persistent session enabled\n");
 		}
 
-#if defined(CONFIG_BSD_LIBRARY)
+#if defined(CONFIG_NRF_MODEM_LIB)
 		/** Successfully connected to AWS IoT broker, mark image as
 		 *  working to avoid reverting to the former image upon reboot.
 		 */
@@ -200,7 +246,7 @@ void aws_iot_event_handler(const struct aws_iot_evt *const evt)
 		k_delayed_work_submit(&shadow_update_work,
 				K_SECONDS(CONFIG_PUBLICATION_INTERVAL_SECONDS));
 
-#if defined(CONFIG_BSD_LIBRARY)
+#if defined(CONFIG_NRF_MODEM_LIB)
 		int err = lte_lc_psm_req(true);
 		if (err) {
 			printk("Requesting PSM failed, error: %d\n", err);
@@ -213,9 +259,17 @@ void aws_iot_event_handler(const struct aws_iot_evt *const evt)
 	case AWS_IOT_EVT_DISCONNECTED:
 		printk("AWS_IOT_EVT_DISCONNECTED\n");
 		k_delayed_work_cancel(&shadow_update_work);
+
+		if (k_delayed_work_pending(&connect_work)) {
+			break;
+		}
+
+		k_delayed_work_submit(&connect_work, K_NO_WAIT);
 		break;
 	case AWS_IOT_EVT_DATA_RECEIVED:
 		printk("AWS_IOT_EVT_DATA_RECEIVED\n");
+		print_received_data(evt->data.msg.ptr, evt->data.msg.topic.str,
+				    evt->data.msg.topic.len);
 		break;
 	case AWS_IOT_EVT_FOTA_START:
 		printk("AWS_IOT_EVT_FOTA_START\n");
@@ -223,7 +277,7 @@ void aws_iot_event_handler(const struct aws_iot_evt *const evt)
 	case AWS_IOT_EVT_FOTA_ERASE_PENDING:
 		printk("AWS_IOT_EVT_FOTA_ERASE_PENDING\n");
 		printk("Disconnect LTE link or reboot\n");
-#if defined(CONFIG_BSD_LIBRARY)
+#if defined(CONFIG_NRF_MODEM_LIB)
 		err = lte_lc_offline();
 		if (err) {
 			printk("Error disconnecting from LTE\n");
@@ -233,7 +287,7 @@ void aws_iot_event_handler(const struct aws_iot_evt *const evt)
 	case AWS_IOT_EVT_FOTA_ERASE_DONE:
 		printk("AWS_FOTA_EVT_ERASE_DONE\n");
 		printk("Reconnecting the LTE link");
-#if defined(CONFIG_BSD_LIBRARY)
+#if defined(CONFIG_NRF_MODEM_LIB)
 		err = lte_lc_connect();
 		if (err) {
 			printk("Error connecting to LTE\n");
@@ -252,6 +306,9 @@ void aws_iot_event_handler(const struct aws_iot_evt *const evt)
 	case AWS_IOT_EVT_ERROR:
 		printk("AWS_IOT_EVT_ERROR, %d\n", evt->data.err);
 		break;
+	case AWS_IOT_EVT_FOTA_ERROR:
+		printk("AWS_IOT_EVT_FOTA_ERROR");
+		break;
 	default:
 		printk("Unknown AWS IoT event type: %d\n", evt->type);
 		break;
@@ -261,11 +318,12 @@ void aws_iot_event_handler(const struct aws_iot_evt *const evt)
 static void work_init(void)
 {
 	k_delayed_work_init(&shadow_update_work, shadow_update_work_fn);
+	k_delayed_work_init(&connect_work, connect_work_fn);
 	k_delayed_work_init(&shadow_update_version_work,
 			    shadow_update_version_work_fn);
 }
 
-#if defined(CONFIG_BSD_LIBRARY)
+#if defined(CONFIG_NRF_MODEM_LIB)
 static void lte_handler(const struct lte_lc_evt *const evt)
 {
 	switch (evt->type) {
@@ -337,11 +395,11 @@ static void at_configure(void)
 	__ASSERT(err == 0, "AT CMD could not be established.");
 }
 
-static void bsd_lib_modem_dfu_handler(void)
+static void nrf_modem_lib_dfu_handler(void)
 {
 	int err;
 
-	err = bsdlib_init();
+	err = nrf_modem_lib_init(NORMAL_MODE);
 
 	switch (err) {
 	case MODEM_DFU_RESULT_OK:
@@ -370,14 +428,14 @@ static void bsd_lib_modem_dfu_handler(void)
 static int app_topics_subscribe(void)
 {
 	int err;
-	char custom_topic[75] = "my-custom-topic/example";
-	char custom_topic_2[75] = "my-custom-topic/example_2";
+	static char custom_topic[75] = "my-custom-topic/example";
+	static char custom_topic_2[75] = "my-custom-topic/example_2";
 
 	const struct aws_iot_topic_data topics_list[APP_TOPICS_COUNT] = {
 		[0].str = custom_topic,
 		[0].len = strlen(custom_topic),
 		[1].str = custom_topic_2,
-		[1].len = strlen(custom_topic)
+		[1].len = strlen(custom_topic_2)
 	};
 
 	err = aws_iot_subscription_topics_add(topics_list,
@@ -389,6 +447,26 @@ static int app_topics_subscribe(void)
 	return err;
 }
 
+static void date_time_event_handler(const struct date_time_evt *evt)
+{
+	switch (evt->type) {
+	case DATE_TIME_OBTAINED_MODEM:
+		printk("DATE_TIME_OBTAINED_MODEM\n");
+		break;
+	case DATE_TIME_OBTAINED_NTP:
+		printk("DATE_TIME_OBTAINED_NTP\n");
+		break;
+	case DATE_TIME_OBTAINED_EXT:
+		printk("DATE_TIME_OBTAINED_EXT\n");
+		break;
+	case DATE_TIME_NOT_OBTAINED:
+		printk("DATE_TIME_NOT_OBTAINED\n");
+		break;
+	default:
+		break;
+	}
+}
+
 void main(void)
 {
 	int err;
@@ -397,8 +475,8 @@ void main(void)
 
 	cJSON_Init();
 
-#if defined(CONFIG_BSD_LIBRARY)
-	bsd_lib_modem_dfu_handler();
+#if defined(CONFIG_NRF_MODEM_LIB)
+	nrf_modem_lib_dfu_handler();
 #endif
 
 	err = aws_iot_init(NULL, aws_iot_event_handler);
@@ -417,7 +495,7 @@ void main(void)
 	}
 
 	work_init();
-#if defined(CONFIG_BSD_LIBRARY)
+#if defined(CONFIG_NRF_MODEM_LIB)
 	modem_configure();
 
 	err = modem_info_init();
@@ -430,15 +508,6 @@ void main(void)
 #endif
 
 
-	date_time_update_async();
-
-	/** Sleep to ensure that time has been obtained before
-	 *  communication with AWS IoT.
-	 */
-	k_sleep(K_SECONDS(15));
-
-	err = aws_iot_connect(NULL);
-	if (err) {
-		printk("aws_iot_connect failed: %d\n", err);
-	}
+	date_time_update_async(date_time_event_handler);
+	k_delayed_work_submit(&connect_work, K_NO_WAIT);
 }
