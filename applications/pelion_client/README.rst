@@ -109,10 +109,20 @@ LTE
 Pelion client state events
 ==========================
 
+The following diagram shows the Pelion client states for the connection to the network and the Pelion platform.
+
 .. figure:: /images/pelion_client_states.svg
     :alt: Pelion client states
 
     Pelion client states
+
+The internal procedures refer to situations where both connection types interact with each other:
+
+* The setup procedure takes place when the network connection is established, but the application has not yet connected to the Pelion platform.
+* The pause procedure takes place when the network connection is failing for a known reason.
+* The resume procedure takes place when the network connection is restored.
+
+The state transitions are also related to the LED behavior, as described in `User Interface`_.
 
 PELION_STATE_DISABLED
 PELION_STATE_INITIALIZED
@@ -137,31 +147,17 @@ The application uses the following buttons on the supported development kits:
 Additionally, the application displays LED behavior that corresponds to the task performed by the application.
 The following table shows the LED behavior demonstrated by the application:
 
-
-+-------------------------------+-----------------------+
-| State                         | DK LEDs               |
-+===============================+=======================+
-| Network connection search     | LED1 blinking         |
-+-------------------------------+-----------------------+
-| Pelion connection search      | LED2 blinking         |
-+-------------------------------+-----------------------+
-| Network connection established| LED1 solid on         |
-+-------------------------------+-----------------------+
-| Pelion connection established | LED2 solid on         |
-+-------------------------------+-----------------------+
-
-+-------------------------------+-----------------------+
-| State                         | DK LEDs               |
-+===============================+=======================+
-| Network connection search     | LED1 blinking         |
-+-------------------------------+-----------------------+
-| Pelion connection search      | LED2 blinking         |
-+-------------------------------+-----------------------+
-| Network connection established| LED1 solid on         |
-+-------------------------------+-----------------------+
-| Pelion connection established | LED2 solid on         |
-+-------------------------------+-----------------------+
-
++-------------------------------+-----------------------+---------------------------+
+| Status                        | LED behavior          | Related application state |
++===============================+=======================+===========================+
+| Network connection search     | LED1 blinking         | NET_STATE_DISABLED or NET_STATE_DISCONNECTED       |
++-------------------------------+-----------------------+---------------------------+
+| Pelion connection search      | LED2 blinking         | PELION_STATE_DISABLED or PELION_STATE_INITIALIZED or PELION_STATE_UNREGISTERED   |
++-------------------------------+-----------------------+---------------------------+
+| Network connection established| LED1 solid on         | NET_STATE_CONNECTED       |
++-------------------------------+-----------------------+---------------------------+
+| Pelion connection established | LED2 solid on         | PELION_STATE_REGISTERED   |
++-------------------------------+-----------------------+---------------------------+
 
 Requirements
 ************
