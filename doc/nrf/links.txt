@@ -132,6 +132,7 @@
 .. _`nRF Connect SDK latest documentation`: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/index.html
 
 .. _`known issues page on the master branch`: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/known_issues.html
+.. _`known issues for nRF Connect SDK v1.7.0`: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/known_issues.html?v=v1-7-0
 .. _`known issues for nRF Connect SDK v1.6.1`: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/known_issues.html?v=v1-6-1
 .. _`known issues for nRF Connect SDK v1.6.0`: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/known_issues.html?v=v1-6-0
 .. _`known issues for nRF Connect SDK v1.5.1`: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/nrf/known_issues.html?v=v1-5-1
@@ -159,6 +160,8 @@
 .. _`ZB_BDB_SIGNAL_FORMATION`: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/zboss/3.8.0.1/group__zb__comm__signals.html#ga342d4176c8932ff8ab0d8d6f997fa603
 .. _`ZB_BDB_SIGNAL_STEERING`: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/zboss/3.8.0.1/group__zb__comm__signals.html#ga25a801841c95d6daddb9c60b39542b13
 .. _`ZB_ZDO_SIGNAL_LEAVE`: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/zboss/3.8.0.1/group__zb__comm__signals.html#ga7942f336484c4fbb85626951480b2bba
+
+.. _`TF-M documentation`: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/tfm/index.html
 
 .. ### Source: www.nordicsemi.com
 
@@ -638,7 +641,6 @@
 
 .. _`Platform Security Architecture (PSA)`: https://www.psacertified.org/what-is-psa-certified/
 
-.. _`TF-M documentation`: https://ci-builds.trustedfirmware.org/static-files/0drI7HdfhXRLQIHCgkYFMOKtBnxcqzzWcM17DKWogmUxNjEzMTM1MzM5MTI1Ojk6YW5vbnltb3VzOmpvYi90Zi1tLWJ1aWxkLWRvY3MtbmlnaHRseS9sYXN0U3RhYmxlQnVpbGQvYXJ0aWZhY3Q=/trusted-firmware-m/build/docs/user_guide/html/index.html
 .. _`Mbed TLS`: https://developer.trustedfirmware.org/w/mbed-tls/
 
 .. _`Nanopb`: https://jpa.kapsi.fi/nanopb/
