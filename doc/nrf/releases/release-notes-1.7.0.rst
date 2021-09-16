@@ -405,6 +405,9 @@ The following list summarizes the most important changes inherited from upstream
 * MCUboot serial: Ported encoding to use the cddl-gen module (which removes dependency on the `TinyCBOR`_ library).
 * bootutil_public library: Made ``boot_read_swap_state()`` declaration public.
 
+The support for the simultaneous multi-image DFU for nRF53 Series was added.
+Refer to :ref:`ug_nrf5340` and :ref:`ug_thingy53` for more information and a configuration example.
+
 Mcumgr
 ======
 
@@ -413,6 +416,9 @@ The mcumgr library contains all commits from the upstream mcumgr repository up t
 The following list summarizes the most important changes inherited from upstream mcumgr:
 
 * Fixed an issue with SMP file management commands that would fail to read or write files, or both.
+
+The support for the simultaneous multi-image DFU for nRF53 Series was added.
+Refer to :ref:`ug_nrf5340` and :ref:`ug_thingy53` for more information and a configuration example.
 
 Zephyr
 ======
