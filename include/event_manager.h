@@ -111,11 +111,11 @@ struct event_type {
 	const char			*name;
 
 	/** Array of pointers to the array of subscribers. */
-	const struct event_subscriber	*subs_start[SUBS_PRIO_COUNT];
+	const struct event_subscriber	*subs_start;
 
 	/** Array of pointers to the element directly after the array of
 	 * subscribers. */
-	const struct event_subscriber	*subs_stop[SUBS_PRIO_COUNT];
+	const struct event_subscriber	*subs_stop;
 
 	/** Bool indicating if the event is logged by default. */
 	bool init_log_enable;

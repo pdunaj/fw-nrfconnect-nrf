@@ -175,28 +175,23 @@ static void event_processor_fn(struct k_work *work)
 
 		bool consumed = false;
 
-		for (size_t prio = SUBS_PRIO_MIN;
-		     (prio <= SUBS_PRIO_MAX) && !consumed;
-		     prio++) {
-			for (const struct event_subscriber *es =
-					et->subs_start[prio];
-			     (es != et->subs_stop[prio]) && !consumed;
-			     es++) {
+		for (const struct event_subscriber *es = et->subs_start;
+		     (es != et->subs_stop) && !consumed;
+		     es++) {
 
-				__ASSERT_NO_MSG(es != NULL);
+			__ASSERT_NO_MSG(es != NULL);
 
-				const struct event_listener *el = es->listener;
+			const struct event_listener *el = es->listener;
 
-				__ASSERT_NO_MSG(el != NULL);
-				__ASSERT_NO_MSG(el->notification != NULL);
+			__ASSERT_NO_MSG(el != NULL);
+			__ASSERT_NO_MSG(el->notification != NULL);
 
-				log_event_progress(et, el);
+			log_event_progress(et, el);
 
-				consumed = el->notification(eh);
+			consumed = el->notification(eh);
 
-				if (consumed) {
-					log_event_consumed(et);
-				}
+			if (consumed) {
+				log_event_consumed(et);
 			}
 		}
 
