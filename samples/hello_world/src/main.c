@@ -59,8 +59,8 @@ static void access_time(unsigned int *mem)
 	size_t pos = 0;
 
 #if CACHE_INVALIDATE
-	sys_cache_data_invd_all();
-	sys_cache_instr_invd_all();
+	sys_cache_data_flush_and_invd_all();
+	sys_cache_instr_flush_and_invd_all();
 	__sync_synchronize();
 #endif
 
@@ -83,8 +83,8 @@ static void skip_access_time(unsigned char *mem, size_t max, size_t step)
 	size_t pos = 0;
 
 #if CACHE_INVALIDATE
-	sys_cache_data_invd_all();
-	sys_cache_instr_invd_all();
+	sys_cache_data_flush_and_invd_all();
+	sys_cache_instr_flush_and_invd_all();
 	__sync_synchronize();
 #endif
 	
