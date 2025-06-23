@@ -27,7 +27,7 @@ static uint8_t radio_end_timer_start;
 
 static nrf_dppi_channel_group_t ramp_up_dppi_group;
 
-void esb_ppi_for_txrx_set(bool rx, bool timer_start)
+void esb_ppi_for_txrx_set(bool rx, bool timer_start, bool fast_switching)
 {
 	uint32_t channels_mask;
 
@@ -48,6 +48,11 @@ void esb_ppi_for_txrx_set(bool rx, bool timer_start)
 
 	nrf_egu_subscribe_set(ESB_EGU, ESB_EGU_TASK, disabled_phy_end_egu);
 
+	if (fast_switching) {
+		nrf_radio_subscribe_set(NRF_RADIO, rx ? NRF_RADIO_TASK_TXEN : NRF_RADIO_TASK_RXEN,
+					disabled_phy_end_egu);
+	}
+
 	if (timer_start) {
 		nrf_timer_subscribe_set(ESB_NRF_TIMER_INSTANCE, NRF_TIMER_TASK_START,
 					egu_timer_start);
@@ -59,7 +64,7 @@ void esb_ppi_for_txrx_set(bool rx, bool timer_start)
 	nrf_dppi_channels_enable(ESB_DPPIC, channels_mask);
 }
 
-void esb_ppi_for_txrx_clear(bool rx, bool timer_start)
+void esb_ppi_for_txrx_clear(bool rx, bool timer_start, bool fast_switching)
 {
 	uint32_t channels_mask;
 
@@ -78,6 +83,11 @@ void esb_ppi_for_txrx_clear(bool rx, bool timer_start)
 	nrf_egu_subscribe_clear(ESB_EGU, ESB_EGU_TASK);
 
 	nrf_dppi_channels_remove_from_group(ESB_DPPIC, BIT(egu_ramp_up), ramp_up_dppi_group);
+
+	if (fast_switching) {
+		nrf_radio_subscribe_clear(NRF_RADIO, rx ? NRF_RADIO_TASK_TXEN :
+							  NRF_RADIO_TASK_RXEN);
+	}
 
 	if (timer_start) {
 		nrf_timer_subscribe_clear(ESB_NRF_TIMER_INSTANCE, NRF_TIMER_TASK_START);
@@ -140,8 +150,13 @@ void esb_ppi_for_wait_for_ack_set(void)
 	nrf_timer_publish_set(ESB_NRF_TIMER_INSTANCE, NRF_TIMER_EVENT_COMPARE0,
 			      timer_compare0_radio_disable);
 
+#if defined(TIMER_TASKS_SHUTDOWN_TASKS_SHUTDOWN_Msk)
+	nrf_timer_subscribe_set(ESB_NRF_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN,
+				radio_address_timer_stop);
+#else
 	nrf_timer_subscribe_set(ESB_NRF_TIMER_INSTANCE, NRF_TIMER_TASK_STOP,
 				radio_address_timer_stop);
+#endif
 
 	nrf_radio_subscribe_set(NRF_RADIO, NRF_RADIO_TASK_DISABLE, timer_compare0_radio_disable);
 
@@ -163,7 +178,12 @@ void esb_ppi_for_wait_for_ack_clear(void)
 	nrf_radio_publish_clear(NRF_RADIO, NRF_RADIO_EVENT_ADDRESS);
 	nrf_timer_publish_clear(ESB_NRF_TIMER_INSTANCE, NRF_TIMER_EVENT_COMPARE0);
 
-	nrf_timer_subscribe_clear(ESB_NRF_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
+#if defined(TIMER_TASKS_SHUTDOWN_TASKS_SHUTDOWN_Msk)
+	nrf_timer_subscribe_clear(ESB_NRF_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
+#else
+	nrf_timer_subscribe_set(ESB_NRF_TIMER_INSTANCE, NRF_TIMER_TASK_STOP,
+				radio_address_timer_stop);
+#endif
 
 	nrf_radio_subscribe_clear(NRF_RADIO, NRF_RADIO_TASK_DISABLE);
 }
@@ -217,7 +237,7 @@ int esb_ppi_init(void)
 
 #else
 
-	nrfx_dppi_t dppi = NRFX_DPPI_INSTANCE(ESB_DPPIC_INSTANCE_NO);
+	nrfx_dppi_t dppi = NRFX_DPPI_INSTANCE(0);
 
 	err = nrfx_dppi_channel_alloc(&dppi, &radio_address_timer_stop);
 	if (err != NRFX_SUCCESS) {
@@ -309,7 +329,7 @@ void esb_ppi_deinit(void)
 
 #else
 
-	nrfx_dppi_t dppi = NRFX_DPPI_INSTANCE(ESB_DPPIC_INSTANCE_NO);
+	nrfx_dppi_t dppi = NRFX_DPPI_INSTANCE(0);
 
 	err = nrfx_dppi_channel_free(&dppi, radio_address_timer_stop);
 	if (err != NRFX_SUCCESS) {
