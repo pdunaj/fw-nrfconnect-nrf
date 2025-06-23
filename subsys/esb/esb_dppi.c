@@ -237,7 +237,7 @@ int esb_ppi_init(void)
 
 #else
 
-	nrfx_dppi_t dppi = NRFX_DPPI_INSTANCE(0);
+	nrfx_dppi_t dppi = NRFX_DPPI_INSTANCE(10);
 
 	err = nrfx_dppi_channel_alloc(&dppi, &radio_address_timer_stop);
 	if (err != NRFX_SUCCESS) {
@@ -329,7 +329,7 @@ void esb_ppi_deinit(void)
 
 #else
 
-	nrfx_dppi_t dppi = NRFX_DPPI_INSTANCE(0);
+	nrfx_dppi_t dppi = NRFX_DPPI_INSTANCE(10);
 
 	err = nrfx_dppi_channel_free(&dppi, radio_address_timer_stop);
 	if (err != NRFX_SUCCESS) {
