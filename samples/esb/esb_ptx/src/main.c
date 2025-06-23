@@ -5,9 +5,11 @@
  */
 #include <zephyr/drivers/clock_control.h>
 #include <zephyr/drivers/clock_control/nrf_clock_control.h>
+
 #if defined(NRF54L15_XXAA)
 #include <hal/nrf_clock.h>
 #endif /* defined(NRF54L15_XXAA) */
+#include <zephyr/drivers/timer/nrf_grtc_timer.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/irq.h>
 #include <zephyr/logging/log.h>
@@ -24,38 +26,90 @@
 
 LOG_MODULE_REGISTER(esb_ptx, CONFIG_ESB_PTX_APP_LOG_LEVEL);
 
-static bool ready = true;
-static struct esb_payload rx_payload;
-static struct esb_payload tx_payload = ESB_CREATE_PAYLOAD(0,
-	0x01, 0x00, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08);
+struct main_msg {
+	uint32_t type;
+	uint32_t cnt;
 
-#define _RADIO_SHORTS_COMMON                                                   \
-	(RADIO_SHORTS_READY_START_Msk | RADIO_SHORTS_END_DISABLE_Msk |         \
-	 RADIO_SHORTS_ADDRESS_RSSISTART_Msk |                                  \
-	 RADIO_SHORTS_DISABLED_RSSISTOP_Msk)
+};
+
+#define MAIN_MSG_TX             0
+#define MAIN_MSG_TIMER          1
+#define MAIN_MSG_TX_FAIL        2
+#define MAIN_MSG_RX             3
+
+struct print_msg {
+	uint32_t tx_cnt;
+	uint32_t tx_fail_cnt;
+	uint32_t rx_cnt;
+	int64_t time_cnt;
+};
+
+static struct esb_payload rx_payload;
+static struct esb_payload tx_payload = ESB_CREATE_PAYLOAD(0, 0x01, 0x02, 0x03, 0x04);
+K_MSGQ_DEFINE(main_msgq,
+	      sizeof(struct main_msg),
+	      64,
+	      sizeof(uint32_t));
+
+K_MSGQ_DEFINE(print_msgq,
+	      sizeof(struct print_msg),
+	      1,
+	      sizeof(uint32_t));
+
+
+static struct k_thread print_thread;
+
+static K_THREAD_STACK_DEFINE(print_stack, 512);
+
+#if CONFIG_ESB_PTX_DELAY > 0
+static int32_t timer_chan;
+static uint64_t timer_tick;
+
+static int timer_target_set(void);
+#endif
+static const int8_t hid_xy[][2] = {
+	{35,7}, {30,21}, {21,30}, {7,35},
+	{-7,35}, {-21,30}, {-30,21}, {-35,7},
+	{-35,-7}, {-30,-21}, {-21,-30}, {-7,-35},
+	{7,-35}, {21,-30}, {30,-21}, {35,-7}
+};
 
 void event_handler(struct esb_evt const *event)
 {
-	ready = true;
+	struct main_msg msg;
+	int err;
 
 	switch (event->evt_id) {
 	case ESB_EVENT_TX_SUCCESS:
-		LOG_DBG("TX SUCCESS EVENT");
+		msg.type = MAIN_MSG_TX;
+		msg.cnt = 1;
+		err = k_msgq_put(&main_msgq, &msg, K_NO_WAIT);
+		if (err) {
+			LOG_ERR("Cannot put TX done to message queue");
+		}
 		break;
 	case ESB_EVENT_TX_FAILED:
-		LOG_DBG("TX FAILED EVENT");
+		esb_start_tx();
+		msg.type = MAIN_MSG_TX_FAIL;
+		msg.cnt = 1;
+		err = k_msgq_put(&main_msgq, &msg, K_NO_WAIT);
+		if (err) {
+			LOG_ERR("Cannot put TX fail to message queue");
+		}
 		break;
 	case ESB_EVENT_RX_RECEIVED:
+		msg.type = MAIN_MSG_RX;
+		msg.cnt = 0;
 		while (esb_read_rx_payload(&rx_payload) == 0) {
-			LOG_DBG("Packet received, len %d : "
-				"0x%02x, 0x%02x, 0x%02x, 0x%02x, "
-				"0x%02x, 0x%02x, 0x%02x, 0x%02x",
-				rx_payload.length, rx_payload.data[0],
-				rx_payload.data[1], rx_payload.data[2],
-				rx_payload.data[3], rx_payload.data[4],
-				rx_payload.data[5], rx_payload.data[6],
-				rx_payload.data[7]);
+			msg.cnt++;
+
 		}
+
+		err = k_msgq_put(&main_msgq, &msg, K_NO_WAIT);
+		if (err) {
+			LOG_ERR("Cannot put RX count to message queue");
+		}
+
 		break;
 	}
 }
@@ -148,11 +202,14 @@ int esb_initialize(void)
 	struct esb_config config = ESB_DEFAULT_CONFIG;
 
 	config.protocol = ESB_PROTOCOL_ESB_DPL;
-	config.retransmit_delay = 600;
-	config.bitrate = ESB_BITRATE_2MBPS;
+	config.retransmit_delay = 500;
+	config.retransmit_count = 5;
+	config.bitrate = ESB_BITRATE_4MBPS;
 	config.event_handler = event_handler;
+	config.crc = ESB_CRC_16BIT;
+
 	config.mode = ESB_MODE_PTX;
-	config.selective_auto_ack = true;
+	config.selective_auto_ack = false;
 	if (IS_ENABLED(CONFIG_ESB_FAST_SWITCHING)) {
 		config.use_fast_ramp_up = true;
 	}
@@ -178,6 +235,17 @@ int esb_initialize(void)
 		return err;
 	}
 
+	err = esb_set_rf_channel(86);
+	if (err) {
+		return err;
+	}
+
+	err = esb_set_tx_power(0);
+	if (err) {
+		LOG_ERR("Cannot set TX power");
+		return err;
+	}
+
 	return 0;
 }
 
@@ -191,6 +259,85 @@ static void leds_update(uint8_t value)
 
 	dk_set_leds(leds_mask);
 }
+static void fill_tx_payload_data(struct esb_payload *payload)
+{
+	static uint8_t tx_data_next;
+
+	payload->data[0] = 0;
+	payload->data[1] = hid_xy[tx_data_next][0];
+	payload->data[2] = hid_xy[tx_data_next][1];
+	payload->data[3] = 0;
+
+	tx_data_next = (tx_data_next + 1 < ARRAY_SIZE(hid_xy)) ? tx_data_next + 1 : 0;
+
+}
+
+static void fill_tx_fifo(void)
+{
+	int err;
+	static bool tx_data_set;
+
+	while (1) {
+		if (!tx_data_set) {
+			fill_tx_payload_data(&tx_payload);
+		}
+
+		err = esb_write_payload(&tx_payload);
+		tx_data_set = (!err) ? false : true;
+		if (err) {
+			break;
+		}
+
+#if CONFIG_ESB_PTX_DELAY > 0
+		break;
+#endif
+	}
+}
+
+#if CONFIG_ESB_PTX_DELAY > 0
+static void timer_compare_handler(int32_t chan_id,
+				  uint64_t expire_time,
+				  void *user_data)
+{
+	timer_target_set();
+
+	struct main_msg msg;
+	int err;
+
+	msg.type = MAIN_MSG_TIMER;
+	err = k_msgq_put(&main_msgq, &msg, K_NO_WAIT);
+	if (err) {
+		LOG_ERR("Cannot put TIMER count to message queue");
+	}
+}
+
+static int timer_target_set(void)
+{
+	int err;
+
+	timer_tick += CONFIG_ESB_PTX_DELAY; // TODO: convert microseconds to timer tick
+
+	err = z_nrf_grtc_timer_set(timer_chan,
+				   timer_tick,
+				   timer_compare_handler,
+				   NULL);
+
+	return err;
+}
+#endif
+
+static void print_main(void *p1, void *p2, void *p3)
+{
+	struct print_msg msg;
+
+	/* Process message queue */
+	while (!k_msgq_get(&print_msgq, &msg, K_FOREVER)) {
+		LOG_INF("Sent %u packets. Failed %u packets. Received %u packets.",
+			msg.tx_cnt, msg.tx_fail_cnt, msg.rx_cnt);
+		LOG_INF("Elapsed %lld milliseconds.", msg.time_cnt);
+	}
+}
+
 
 int main(void)
 {
@@ -215,22 +362,93 @@ int main(void)
 		return 0;
 	}
 
+	k_thread_create(&print_thread,
+			print_stack,
+			K_THREAD_STACK_SIZEOF(print_stack),
+			print_main,
+			NULL,
+			NULL,
+			NULL,
+			K_LOWEST_APPLICATION_THREAD_PRIO,
+			0,
+			K_NO_WAIT);
+
+#if CONFIG_ESB_PTX_DELAY > 0
+	timer_chan = z_nrf_grtc_timer_chan_alloc();
+	if (timer_chan < 0) {
+		LOG_ERR("Cannot get a timer channel");
+		return 0;
+	}
+#endif
+
 	LOG_INF("Initialization complete");
 	LOG_INF("Sending test packet");
 
+	tx_payload.length = CONFIG_ESB_PTX_TX_LENGTH;
+	fill_tx_payload_data(&tx_payload);
 	tx_payload.noack = false;
-	while (1) {
-		if (ready) {
-			ready = false;
-			esb_flush_tx();
-			leds_update(tx_payload.data[1]);
 
-			err = esb_write_payload(&tx_payload);
-			if (err) {
-				LOG_ERR("Payload write failed, err %d", err);
-			}
-			tx_payload.data[1]++;
+#if CONFIG_ESB_PTX_DELAY > 0
+	timer_tick = z_nrf_grtc_timer_read();
+	timer_target_set();
+#endif
+
+	uint32_t tx_event_cnt = 0;
+	uint32_t tx_fail_cnt = 0;
+	uint32_t rx_fifo_cnt = 0;
+
+	struct main_msg msg;
+
+	while (1) {
+		int64_t time_cnt;
+
+		time_cnt = k_uptime_get();
+
+#if !CONFIG_ESB_PTX_DELAY
+		fill_tx_fifo();
+#endif
+
+		do {
+			k_msgq_get(&main_msgq, &msg, K_FOREVER);
+			do {
+				switch(msg.type) {
+				case MAIN_MSG_TX_FAIL:
+					tx_fail_cnt += msg.cnt;
+				case MAIN_MSG_TX:
+					tx_event_cnt += msg.cnt;
+#if !CONFIG_ESB_PTX_DELAY
+					fill_tx_fifo();
+#endif
+					break;
+#if CONFIG_ESB_PTX_DELAY > 0
+				case MAIN_MSG_TIMER:
+					fill_tx_fifo();
+					break;
+#endif
+				case MAIN_MSG_RX:
+					rx_fifo_cnt += msg.cnt;
+					break;
+				default:
+					break;
+				}
+			} while (!k_msgq_get(&main_msgq, &msg, K_NO_WAIT));
+		} while (tx_event_cnt < CONFIG_ESB_PTX_BATCH_SIZE);
+
+		time_cnt = k_uptime_delta(&time_cnt);
+
+		struct print_msg prt_msg;
+
+		prt_msg.tx_cnt = tx_event_cnt;
+		tx_event_cnt = 0;
+		prt_msg.tx_fail_cnt = tx_fail_cnt;
+		tx_fail_cnt = 0;
+		prt_msg.rx_cnt = rx_fifo_cnt;
+		rx_fifo_cnt = 0;
+		prt_msg.time_cnt = time_cnt;
+
+		err = k_msgq_put(&print_msgq, &prt_msg, K_NO_WAIT);
+		if (err) {
+			LOG_ERR("Cannot put PTX statistics to message queue");
 		}
-		k_sleep(K_MSEC(100));
 	}
 }
