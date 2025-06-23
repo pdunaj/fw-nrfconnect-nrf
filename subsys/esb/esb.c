@@ -1235,6 +1235,7 @@ static void on_radio_disabled_tx(void)
 	 * and that it will disable the radio automatically if no packet is
 	 * received by the time defined in wait_for_ack_timeout_us
 	 */
+	nrf_timer_task_trigger(esb_timer.p_reg, NRF_TIMER_TASK_STOP); //PDUNAJ
 
 	nrfx_timer_compare(&esb_timer, NRF_TIMER_CC_CHANNEL0,
 			   (wait_for_ack_timeout_us + ADDR_EVENT_LATENCY_US), false);
@@ -1248,6 +1249,7 @@ static void on_radio_disabled_tx(void)
 
 	nrf_timer_event_clear(esb_timer.p_reg, NRF_TIMER_EVENT_COMPARE0);
 	nrf_timer_event_clear(esb_timer.p_reg, NRF_TIMER_EVENT_COMPARE1);
+	nrf_timer_event_clear(esb_timer.p_reg, NRF_TIMER_EVENT_COMPARE2);
 
 	esb_ppi_for_wait_for_ack_set();
 	esb_ppi_for_retransmission_clear();
@@ -1261,6 +1263,8 @@ static void on_radio_disabled_tx(void)
 	nrf_radio_packetptr_set(NRF_RADIO, rx_payload_buffer);
 	on_radio_disabled = on_radio_disabled_tx_wait_for_ack;
 	esb_state = ESB_STATE_PTX_RX_ACK;
+
+	nrf_timer_task_trigger(esb_timer.p_reg, NRF_TIMER_TASK_START); //PDUNAJ
 }
 
 static void on_radio_disabled_tx_wait_for_ack(void)
@@ -1290,6 +1294,9 @@ static void on_radio_disabled_tx_wait_for_ack(void)
 				nrf_radio_txaddress_get(NRF_RADIO), rx_pdu->type.dpl_pdu.pid)) {
 				interrupt_flags |= INT_RX_DATA_RECEIVED_MSK;
 			}
+			memset(rx_payload_buffer, 0xab, sizeof(rx_payload_buffer));
+			rx_pdu->type.dpl_pdu.length = 0;
+			//k_busy_wait(10);
 		}
 
 		if ((tx_fifo.count == 0) || (esb_cfg.tx_mode == ESB_TXMODE_MANUAL)) {
