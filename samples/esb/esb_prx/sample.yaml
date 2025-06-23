@@ -9,16 +9,8 @@ tests:
       - nrf52dk/nrf52832
       - nrf52840dk/nrf52840
       - nrf52dk/nrf52810
-    platform_allow:
-      - nrf52dk/nrf52832
-      - nrf52840dk/nrf52840
-      - nrf52dk/nrf52810
-    tags:
-      - esb
-      - samples
-      - console
-      - sysbuild
-      - ci_samples_esb
+    platform_allow: nrf52dk/nrf52832 nrf52840dk/nrf52840 nrf52dk/nrf52810
+    tags: samples console sysbuild
   sample.esb.prx.build:
     sysbuild: true
     build_only: true
@@ -30,25 +22,17 @@ tests:
       - nrf5340dk/nrf5340/cpunet
       - nrf21540dk/nrf52840
       - nrf54h20dk/nrf54h20/cpurad
-      - nrf54l15dk/nrf54l05/cpuapp
-      - nrf54l15dk/nrf54l10/cpuapp
-      - nrf54l15dk/nrf54l15/cpuapp
-    platform_allow:
-      - nrf52dk/nrf52832
-      - nrf52833dk/nrf52833
-      - nrf52840dk/nrf52840
-      - nrf52dk/nrf52810
-      - nrf5340dk/nrf5340/cpunet
-      - nrf21540dk/nrf52840
-      - nrf54h20dk/nrf54h20/cpurad
-      - nrf54l15dk/nrf54l05/cpuapp
-      - nrf54l15dk/nrf54l10/cpuapp
-      - nrf54l15dk/nrf54l15/cpuapp
-    tags:
-      - esb
-      - ci_build
-      - sysbuild
-      - ci_samples_esb
+      - nrf54l15pdk/nrf54l15/cpuapp
+    platform_allow: >
+      nrf52dk/nrf52832
+      nrf52833dk/nrf52833
+      nrf52840dk/nrf52840
+      nrf52dk/nrf52810
+      nrf5340dk/nrf5340/cpunet
+      nrf21540dk/nrf52840
+      nrf54h20dk/nrf54h20/cpurad
+      nrf54l15pdk/nrf54l15/cpuapp
+    tags: esb ci_build sysbuild
   sample.esb.prx.dynamic_irq:
     sysbuild: true
     build_only: true
@@ -56,22 +40,11 @@ tests:
       - CONFIG_ESB_DYNAMIC_INTERRUPTS=y
       - CONFIG_DYNAMIC_INTERRUPTS=y
       - CONFIG_DYNAMIC_DIRECT_INTERRUPTS=y
-      - CONFIG_MPSL_DYNAMIC_INTERRUPTS=y
     integration_platforms:
       - nrf5340dk/nrf5340/cpunet
       - nrf52840dk/nrf52840
-      - nrf54l15dk/nrf54l15/cpuapp
-      - nrf54h20dk/nrf54h20/cpurad
-    platform_allow:
-      - nrf5340dk/nrf5340/cpunet
-      - nrf52840dk/nrf52840
-      - nrf54l15dk/nrf54l15/cpuapp
-      - nrf54h20dk/nrf54h20/cpurad
-    tags:
-      - esb
-      - ci_build
-      - sysbuild
-      - ci_samples_esb
+    platform_allow: nrf5340dk/nrf5340/cpunet nrf52840dk/nrf52840
+    tags: esb ci_build sysbuild
   sample.esb.prx.nrf5340_nrf21540:
     sysbuild: true
     build_only: true
@@ -79,11 +52,7 @@ tests:
     integration_platforms:
       - nrf5340dk/nrf5340/cpunet
     platform_allow: nrf5340dk/nrf5340/cpunet
-    tags:
-      - esb
-      - ci_build
-      - sysbuild
-      - ci_samples_esb
+    tags: esb ci_build sysbuild
   sample.esb.prx.fast_switching:
     sysbuild: true
     build_only: true
@@ -94,8 +63,4 @@ tests:
       - nrf54h20dk/nrf54h20/cpurad
     platform_allow: >
       nrf54h20dk/nrf54h20/cpurad
-    tags:
-      - esb
-      - ci_build
-      - sysbuild
-      - ci_samples_esb
+    tags: esb ci_build sysbuild
