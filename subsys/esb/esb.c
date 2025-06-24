@@ -31,6 +31,9 @@
 
 LOG_MODULE_REGISTER(esb, CONFIG_ESB_LOG_LEVEL);
 
+
+#define ESB_PACKET_PTR_SWAP 1
+
 /* Constants */
 
 /* 2 Mb RX wait for acknowledgment time-out value.
@@ -1110,6 +1113,11 @@ static void start_tx_transaction(void)
 					(radio_shorts_common | NRF_RADIO_SHORT_DISABLED_RXEN_MASK));
 			}
 
+			if (0 && IS_ENABLED(ESB_PACKET_PTR_SWAP)) {
+				/* Swap tx and rx packet pointer during radio transaction. */
+				nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_ADDRESS_MASK);
+			}
+
 			/* Configure the retransmit counter */
 			retransmits_remaining = esb_cfg.retransmit_count;
 			on_radio_disabled = on_radio_disabled_tx;
@@ -1264,16 +1272,21 @@ static void on_radio_disabled_tx(void)
 		update_rf_payload_format(0);
 	}
 
-	nrf_radio_packetptr_set(NRF_RADIO, rx_payload_buffer);
+	if (IS_ENABLED(ESB_PACKET_PTR_SWAP)) {
+		/* The packet pointer was updated to double buffered register. */
+	} else {
+		nrf_radio_packetptr_set(NRF_RADIO, rx_payload_buffer);
+	}
+	nrf_timer_task_trigger(esb_timer.p_reg, NRF_TIMER_TASK_START); //PDUNAJ
+
 	on_radio_disabled = on_radio_disabled_tx_wait_for_ack;
 	esb_state = ESB_STATE_PTX_RX_ACK;
 
-	nrf_timer_task_trigger(esb_timer.p_reg, NRF_TIMER_TASK_START); //PDUNAJ
 }
 
 static void on_radio_disabled_tx_wait_for_ack(void)
 {
-	struct esb_radio_pdu *rx_pdu = (struct esb_radio_pdu *)rx_payload_buffer;
+	struct esb_radio_pdu *rx_pdu = (struct esb_radio_pdu *)tx_payload_buffer;
 	/* This marks the completion of a TX_RX sequence (TX with ACK) */
 
 	/* Make sure the timer will not deactivate the radio if a packet is
@@ -1298,9 +1311,9 @@ static void on_radio_disabled_tx_wait_for_ack(void)
 				nrf_radio_txaddress_get(NRF_RADIO), rx_pdu->type.dpl_pdu.pid)) {
 				interrupt_flags |= INT_RX_DATA_RECEIVED_MSK;
 			}
-			memset(rx_payload_buffer, 0xab, sizeof(rx_payload_buffer));
+			//memset(rx_payload_buffer, 0xab, sizeof(rx_payload_buffer));
 			rx_pdu->type.dpl_pdu.length = 0;
-			//k_busy_wait(10);
+			//k_busy_wait(5);
 		}
 
 		if ((tx_fifo.count == 0) || (esb_cfg.tx_mode == ESB_TXMODE_MANUAL)) {
@@ -1344,7 +1357,11 @@ static void on_radio_disabled_tx_wait_for_ack(void)
 			}
 			update_rf_payload_format(current_payload->length);
 
-			nrf_radio_packetptr_set(NRF_RADIO, tx_payload_buffer);
+			if (IS_ENABLED(ESB_PACKET_PTR_SWAP)) {
+				/* The packet pointer was updated to double buffered register. */
+			} else {
+				nrf_radio_packetptr_set(NRF_RADIO, tx_payload_buffer);
+			}
 
 			on_radio_disabled = on_radio_disabled_tx;
 			esb_state = ESB_STATE_PTX_TX_ACK;
@@ -1582,6 +1599,18 @@ static void get_and_clear_irqs(uint32_t *interrupts)
 
 static void radio_irq_handler(void)
 {
+	if (false && IS_ENABLED(ESB_PACKET_PTR_SWAP) &&
+	    nrf_radio_event_check(NRF_RADIO, NRF_RADIO_INT_ADDRESS_MASK)) {
+		nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_INT_ADDRESS_MASK);
+		if (esb_state == ESB_STATE_PTX_TX_ACK) {
+			/* Prepare pointer for upcoming ack transmission. */
+			nrf_radio_packetptr_set(NRF_RADIO, rx_payload_buffer);
+		} else if (esb_state == ESB_STATE_PTX_RX_ACK) {
+			/* Prepare pointer for upcoming tx transmission. */
+			nrf_radio_packetptr_set(NRF_RADIO, tx_payload_buffer);
+		}
+	}
+
 	if (nrf_radio_int_enable_check(NRF_RADIO, NRF_RADIO_INT_DISABLED_MASK) &&
 	    nrf_radio_event_check(NRF_RADIO, NRF_RADIO_EVENT_DISABLED)) {
 		nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_DISABLED);
