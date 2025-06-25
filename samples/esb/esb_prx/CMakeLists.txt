@@ -14,4 +14,6 @@ FILE(GLOB app_sources src/*.c)
 # NORDIC SDK APP START
 target_sources(app PRIVATE ${app_sources})
 
+zephyr_code_relocate(FILES src/main.c LOCATION MYTCM NOCOPY)
+
 # NORDIC SDK APP END

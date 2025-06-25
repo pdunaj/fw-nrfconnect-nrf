@@ -96,3 +96,24 @@
 zephyr_udc0: &usbhs {
 	status = "okay";
 };
+
+
+&cpurad_ram0 {
+	//compatible = "mmio-sram";
+	reg = < 0x23000000 0x20000 >;
+	//#address-cells = < 0x1 >;
+	//#size-cells = < 0x1 >;
+	ranges = < 0x0 0x23000000 0x20000 >;
+};
+
+/ {
+	cpurad_tcm: sram@23020000 {
+		#address-cells = < 0x1 >;
+		#size-cells = < 0x1 >;
+		compatible = "zephyr,memory-region";
+		reg = < 0x23020000 0x10000 >;
+		#memory-region-cells = < 0x0 >;
+		zephyr,memory-region = "MYTCM";
+		zephyr,memory-attr = < 0x9 >;
+	};
+};
