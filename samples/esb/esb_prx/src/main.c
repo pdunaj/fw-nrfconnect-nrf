@@ -485,6 +485,8 @@ int main(void)
 	int err;
 
 	LOG_INF("Enhanced ShockBurst prx sample");
+	void testme_here(void);
+	testme_here();
 
 	err = clocks_start();
 	if (err) {

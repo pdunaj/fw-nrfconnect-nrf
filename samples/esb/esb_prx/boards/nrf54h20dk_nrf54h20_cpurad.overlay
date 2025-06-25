@@ -114,6 +114,6 @@ zephyr_udc0: &usbhs {
 		reg = < 0x23020000 0x10000 >;
 		#memory-region-cells = < 0x0 >;
 		zephyr,memory-region = "MYTCM";
-		zephyr,memory-attr = < 0x9 >;
+		zephyr,memory-attr = < 0x0 >;
 	};
 };
