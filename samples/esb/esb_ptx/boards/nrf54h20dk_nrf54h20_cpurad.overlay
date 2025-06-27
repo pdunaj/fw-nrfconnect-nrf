@@ -44,6 +44,7 @@
 		esb_io_radio_disabled: esb-io-radio-disabled {
 			gpios = <&gpio0 7 GPIO_ACTIVE_LOW>;
 			label = "esb io radio disabled";
+			status = "okay";
 		};
 		esb_io_radio_rx: esb-io-radio-rx {
 			gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
