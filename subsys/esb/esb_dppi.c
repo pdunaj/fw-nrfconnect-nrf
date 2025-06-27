@@ -40,8 +40,8 @@ void esb_ppi_for_txrx_set(bool rx, bool timer_start, bool fast_switching)
 	nrf_dppi_channels_include_in_group(ESB_DPPIC, BIT(egu_ramp_up), ramp_up_dppi_group);
 
 	nrf_egu_subscribe_set(ESB_EGU, ESB_EGU_DPPI_TASK, egu_timer_start);
-	nrf_radio_subscribe_set(NRF_RADIO, rx ? NRF_RADIO_TASK_RXEN : NRF_RADIO_TASK_TXEN,
-				egu_ramp_up);
+	/*nrf_radio_subscribe_set(NRF_RADIO, rx ? NRF_RADIO_TASK_RXEN : NRF_RADIO_TASK_TXEN,
+				egu_ramp_up); pdunaj*/
 	nrf_dppi_subscribe_set(ESB_DPPIC,
 				nrf_dppi_group_disable_task_get((uint8_t)ramp_up_dppi_group),
 				egu_ramp_up);
@@ -158,7 +158,7 @@ void esb_ppi_for_wait_for_ack_set(void)
 				radio_address_timer_stop);
 #endif
 
-	nrf_radio_subscribe_set(NRF_RADIO, NRF_RADIO_TASK_DISABLE, timer_compare0_radio_disable);
+	//pdunaj nrf_radio_subscribe_set(NRF_RADIO, NRF_RADIO_TASK_DISABLE, timer_compare0_radio_disable);
 
 	channels_mask = (BIT(radio_address_timer_stop) |
 			 BIT(timer_compare0_radio_disable));
@@ -185,7 +185,7 @@ void esb_ppi_for_wait_for_ack_clear(void)
 				radio_address_timer_stop);
 #endif
 
-	nrf_radio_subscribe_clear(NRF_RADIO, NRF_RADIO_TASK_DISABLE);
+//pdunaj	nrf_radio_subscribe_clear(NRF_RADIO, NRF_RADIO_TASK_DISABLE);
 }
 
 void esb_ppi_for_wait_for_rx_set(void)
