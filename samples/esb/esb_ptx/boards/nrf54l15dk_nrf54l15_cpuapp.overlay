@@ -1,0 +1,25 @@
+/{
+	trace_gpio {
+		compatible = "gpio-leds";
+		trace0: trace0 {
+			gpios = <&gpio2 10 GPIO_ACTIVE_LOW>;
+			label = "trace0";
+			status = "okay";
+		};
+	};
+
+	aliases {
+		trace0 = &trace0;
+	};
+};
+
+&led0 {
+	status = "okay";
+};
+
+&gpio1 {
+	status = "okay";
+};
+&gpio2 {
+	status = "okay";
+};
