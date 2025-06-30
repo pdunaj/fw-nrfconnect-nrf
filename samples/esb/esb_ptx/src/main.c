@@ -501,6 +501,12 @@ int main(void)
 	nrf_rramc_power_config_set(NRF_RRAMC, &rram_power);
 	LOG_INF("RRAM power access timeout set to %d", rram_power.access_timeout);
 	#endif
+	#if 1
+	unsigned int lowpower_conf = NRF_RRAMC->POWER.LOWPOWERCONFIG;
+	//NRF_RRAMC->POWER.LOWPOWERCONFIG = (0 << 6) | 0x1; /* Mode:Standby + AXI wake up - speed up 13 us */
+	NRF_RRAMC->POWER.LOWPOWERCONFIG = (1 << 6) | 0x1; /* Mode:Standby + CPU wake up - speed up additionally 2us similarly to skipping WFI */
+	LOG_INF("RRAM power config was %08x and is set to %08x", lowpower_conf, NRF_RRAMC->POWER.LOWPOWERCONFIG);
+	#endif
 
 	int err;
 
@@ -536,7 +542,7 @@ int main(void)
 			0,
 			K_NO_WAIT);
 
-#if 1 //fixes the problem but will burn power
+#if 0 // skip wfi - fixes the problem but will burn power
 	k_thread_create(&pd_grind_thread,
 			pd_grind_stack,
 			K_THREAD_STACK_SIZEOF(pd_grind_stack),
