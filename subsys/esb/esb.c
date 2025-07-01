@@ -1027,18 +1027,18 @@ static bool rx_fifo_push_rfbuf(uint8_t pipe, uint8_t pid)
 
 static void esb_timer_handler(nrf_timer_event_t event_type, void *context)
 {
-	nrf_gpio_pin_set(71);
-	nrf_gpio_pin_clear(71);
-	nrf_gpio_pin_set(71);
-	nrf_gpio_pin_clear(71);
-	nrf_gpio_pin_set(71);
+	if (false) nrf_gpio_pin_set(71);
+	if (false) nrf_gpio_pin_clear(71);
+	if (false) nrf_gpio_pin_set(71);
+	if (false) nrf_gpio_pin_clear(71);
+	if (false) nrf_gpio_pin_set(71);
 	if (nrf_timer_int_enable_check(esb_timer.p_reg, NRF_TIMER_INT_COMPARE1_MASK)) {
 		nrf_timer_event_clear(esb_timer.p_reg, NRF_TIMER_EVENT_COMPARE1);
 		if (on_timer_compare1 != NULL) {
 			on_timer_compare1();
 		}
 	}
-	nrf_gpio_pin_set(71);
+	if (false) nrf_gpio_pin_set(71);
 }
 
 static int sys_timer_init(void)
@@ -1182,7 +1182,7 @@ static void start_tx_transaction(void)
 	nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_EVENT_DISABLED);
 	nrf_radio_event_clear(NRF_RADIO, ESB_RADIO_EVENT_END);
 
-	nrf_gpio_pin_set(74);
+	if (false) nrf_gpio_pin_set(74);
 	/* Trigger different radio event if radio is disabled or idle */
 	if (is_tx_idle) {
 		nrf_radio_task_trigger(NRF_RADIO, NRF_RADIO_TASK_START);
@@ -1243,13 +1243,13 @@ static void on_radio_disabled_tx_noack(void)
 #define WATCH_TXTIMES 0
 static void on_radio_disabled_tx(void)
 {
-	if (IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_set(73);
+	if (IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_set(73);
 	esb_ppi_for_txrx_clear(false, true, fast_switching);
-	if (IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_clear(73);
-	if (IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_set(73);
+	if (IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_clear(73);
+	if (IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_set(73);
 	esb_ppi_for_txrx_clear(false, true, fast_switching);
-	if (IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_clear(73);
-	if (IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_set(73);
+	if (IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_clear(73);
+	if (IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_set(73);
 	/* The timer was triggered on radio disabled event so we can clear PPI connections here. */
 			if (IS_ENABLED(PDUNAJ_MPSL)) {
 	esb_ppi_for_fem_clear();
@@ -1259,9 +1259,9 @@ static void on_radio_disabled_tx(void)
 	/* Remove the DISABLED -> RXEN shortcut, to make sure the radio stays
 	 * disabled after the RX window
 	 */
-	if (IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_clear(73);
+	if (IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_clear(73);
 	nrf_radio_shorts_set(NRF_RADIO, radio_shorts_common);
-	if (IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_set(73);
+	if (IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_set(73);
 
 	/* Make sure the timer is started the next time the radio is ready,
 	 * and that it will disable the radio automatically if no packet is
@@ -1303,12 +1303,12 @@ static void on_radio_disabled_tx(void)
 	on_radio_disabled = on_radio_disabled_tx_wait_for_ack;
 	esb_state = ESB_STATE_PTX_RX_ACK;
 
-	if (IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_clear(73);
+	if (IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_clear(73);
 }
 
 static void on_radio_disabled_tx_wait_for_ack(void)
 {
-			if (!IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_set(73);
+			if (!IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_set(73);
 	struct esb_radio_pdu *rx_pdu = (struct esb_radio_pdu *)tx_payload_buffer;
 	/* This marks the completion of a TX_RX sequence (TX with ACK) */
 
@@ -1316,20 +1316,20 @@ static void on_radio_disabled_tx_wait_for_ack(void)
 	 * received.
 	 */
 	esb_ppi_for_wait_for_ack_clear();
-			if (!IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_clear(73);
+			if (!IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_clear(73);
 
 	/* Just clear LNA configuration and disable front-end module. */
-			if (!IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_set(73);
+			if (!IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_set(73);
 			if (IS_ENABLED(PDUNAJ_MPSL)) {
 	mpsl_fem_lna_configuration_clear();
 	mpsl_fem_disable();
 			}
-			if (!IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_clear(73);
+			if (!IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_clear(73);
 
 	/* If the radio has received a packet and the CRC status is OK */
 	if (nrf_radio_event_check(NRF_RADIO, ESB_RADIO_EVENT_END) &&
 	    nrf_radio_crc_status_check(NRF_RADIO)) {
-		nrf_gpio_pin_clear(74);
+		if (false) nrf_gpio_pin_clear(74);
 		interrupt_flags |= INT_TX_SUCCESS_MSK;
 		last_tx_attempts = esb_cfg.retransmit_count - retransmits_remaining + 1;
 
@@ -1346,13 +1346,13 @@ static void on_radio_disabled_tx_wait_for_ack(void)
 		}
 
 		if ((tx_fifo.count == 0) || (esb_cfg.tx_mode == ESB_TXMODE_MANUAL)) {
-			if (!IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_set(73);
-			if (!IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_clear(73);
+			if (!IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_set(73);
+			if (!IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_clear(73);
 			esb_state = ESB_STATE_IDLE;
 			set_evt_interrupt();
 		} else {
-			//if (!IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_set(73);
-			//if (!IS_ENABLED(WATCH_TXTIMES)) nrf_gpio_pin_clear(73);
+			//if (!IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_set(73);
+			//if (!IS_ENABLED(WATCH_TXTIMES)) if (false) nrf_gpio_pin_clear(73);
 			set_evt_interrupt();
 			start_tx_transaction();
 		}
@@ -1631,7 +1631,7 @@ static void get_and_clear_irqs(uint32_t *interrupts)
 
 static void radio_irq_handler(void)
 {
-	nrf_gpio_pin_set(71);
+	if (false) nrf_gpio_pin_set(71);
 	if (false && IS_ENABLED(ESB_PACKET_PTR_SWAP) &&
 	    nrf_radio_event_check(NRF_RADIO, NRF_RADIO_INT_ADDRESS_MASK)) {
 		nrf_radio_event_clear(NRF_RADIO, NRF_RADIO_INT_ADDRESS_MASK);
@@ -1676,14 +1676,14 @@ static void radio_irq_handler(void)
 		}
 	}
 #endif /* defined(CONFIG_ESB_FAST_CHANNEL_SWITCHING) */
-	nrf_gpio_pin_clear(71);
+	if (false) nrf_gpio_pin_clear(71);
 }
 
 static void esb_evt_irq_handler(void)
 {
-	nrf_gpio_pin_set(71);
-	nrf_gpio_pin_clear(71);
-	nrf_gpio_pin_set(71);
+	if (true) nrf_gpio_pin_set(71);
+	if (true) nrf_gpio_pin_clear(71);
+	if (false) nrf_gpio_pin_set(71);
 	uint32_t interrupts;
 	struct esb_evt event;
 
@@ -1704,7 +1704,7 @@ static void esb_evt_irq_handler(void)
 			event_handler(&event);
 		}
 	}
-	nrf_gpio_pin_clear(71);
+	if (false) nrf_gpio_pin_clear(71);
 }
 
 #if IS_ENABLED(CONFIG_ESB_DYNAMIC_INTERRUPTS)
@@ -1777,9 +1777,9 @@ int esb_init(const struct esb_config *config)
 {
 	int err;
 
-	nrf_gpio_pin_clear(71);
-	nrf_gpio_pin_clear(73);
-	nrf_gpio_pin_clear(74);
+	if (false) nrf_gpio_pin_clear(71);
+	if (false) nrf_gpio_pin_clear(73);
+	if (false) nrf_gpio_pin_clear(74);
 	if (!config) {
 		return -EINVAL;
 	}

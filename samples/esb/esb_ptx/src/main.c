@@ -332,7 +332,7 @@ static void fill_tx_fifo(void)
 			break;
 		}
 
-#if CONFIG_ESB_PTX_DELAY > 0
+#if 0//CONFIG_ESB_PTX_DELAY > 0
 		break;
 #endif
 	}
