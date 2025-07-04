@@ -33,6 +33,7 @@ static uint32_t imisses;
 #endif
 #define CACHE_INVALIDATE 0
 
+#if 0
 static void cache_profiling_init(void)
 {
 #if PROFILE_CACHE
@@ -62,6 +63,7 @@ static void cache_stats_print(void)
 	printf("\tInstr cache misses: %u\n", imisses);
 #endif
 }
+#endif
 
 LOG_MODULE_REGISTER(esb_ptx, CONFIG_ESB_PTX_APP_LOG_LEVEL);
 
@@ -372,11 +374,11 @@ static void print_main(void *p1, void *p2, void *p3)
 
 	/* Process message queue */
 	while (!k_msgq_get(&print_msgq, &msg, K_FOREVER)) {
-		cache_stats_print();
+		//cache_stats_print();
 		LOG_INF("Sent %u packets. Failed %u packets. Received %u packets.",
 			msg.tx_cnt, msg.tx_fail_cnt, msg.rx_cnt);
 		LOG_INF("Elapsed %lld milliseconds.", msg.time_cnt);
-		printk("constlat: %u\n", NRF_POWER->CONSTLATSTAT);
+		//printk("constlat: %u\n", NRF_POWER->CONSTLATSTAT);
 	}
 }
 
@@ -394,6 +396,7 @@ static const struct gpio_dt_spec trace2 = GPIO_DT_SPEC_GET_OR(DT_ALIAS(led2), gp
 
 int main(void)
 {
+#if 0
 	if (!device_is_ready(trace0.port)) {
 		LOG_ERR("GPIO port not ready");
 		return 0;
@@ -489,6 +492,7 @@ int main(void)
 			arch_nop();
 			arch_nop();
 	#endif
+#endif
 	#if 1
 	nrf_rramc_power_t rram_power;
 	nrf_rramc_power_config_get(NRF_RRAMC, &rram_power);
@@ -584,7 +588,7 @@ int main(void)
 		sys_cache_instr_flush_and_invd_all();
 		__sync_synchronize();
 #endif
-		cache_profiling_clear();
+		//cache_profiling_clear();
 
 #if !CONFIG_ESB_PTX_DELAY
 		fill_tx_fifo();
@@ -616,9 +620,9 @@ int main(void)
 			} while (!k_msgq_get(&main_msgq, &msg, K_NO_WAIT));
 		} while (tx_event_cnt < 1000/*CONFIG_ESB_PTX_BATCH_SIZE*/);
 
-		cache_stats_update();
+		//cache_stats_update();
 		time_cnt = k_uptime_delta(&time_cnt);
-		gpio_pin_toggle(trace0.port, trace0.pin);
+		//gpio_pin_toggle(trace0.port, trace0.pin);
 
 		struct print_msg prt_msg;
 
